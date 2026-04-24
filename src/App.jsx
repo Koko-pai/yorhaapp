@@ -6,9 +6,9 @@ import { pickMissions, WEAPON_CATEGORY_WEIGHTS } from "./missionBank.js";
 // ═══════════════════════════════════════════════════════
 
 const IMGS = {
-  sentinel: "https://i.ibb.co/tgKKbGz/nr-10h-sentinel-savior.jpg",
-  abstract: "https://i.ibb.co/yDYqmSy/nr-10h-abstract-savior.jpg",
-  reborn:   "https://i.ibb.co/Xr6q4WGv/nr-10h-reborn-warden.jpg",
+  sentinel: "https://i.ibb.co/DgMDtFFk/nr-10h-sentinel-savior-Photoroom.png",
+  abstract: "https://i.ibb.co/kgb7fW9d/nr-10h-abstract-savior-Photoroom.png",
+  reborn:   "https://i.ibb.co/4wPkwGsJ/nr-10h-reborn-warden-Photoroom.png",
 };
 
 const FORMS = {
