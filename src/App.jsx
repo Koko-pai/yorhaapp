@@ -17,7 +17,7 @@ const FORMS = {
   reborn:   { name: "REBORN WARDEN",   unlockFw: 9,  accent: "#ffe0a0", desc: "Финальная форма. Белое облачение, реликвийное оружие." },
 };
 
-const XP_TABLE = [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200, 4000];
+const XP_TABLE = [0, 100, 250, 900, 1400, 2000, 2800, 3800, 5000, 6400, 8000];
 
 // Gacha rewards pool
 const GACHA_POOL = [
@@ -1010,7 +1010,7 @@ function HelpPopup({ onClose, accent }) {
           { title:"◈ ПРОШИВКА", body:"Твой уровень. Заполняй шкалу Памяти выполняя миссии. На v5.0 открывается Abstract Savior, на v9.0 — Reborn Warden." },
           { title:"⚔ ОРУЖИЕ", body:"Влияет на стиль генерируемых миссий. Редкое оружие даёт бонус +10-30% к Памяти за совместимые задания. Надень оружие во вкладке Архив → Коллекция." },
           { title:"✦ АРХИВ (ГАЧА)", body:"Накопи 10 ◈ фрагментов и извлеки запись из архива. Можно получить: титулы (отображаются под именем), цветовые схемы (меняют весь интерфейс), оружие (влияет на миссии), лор-файлы (цитаты из вселенной NieR)." },
-          { title:"▶ ЦЕЛИ", body:"Добавь свои реальные цели — ИИ будет генерировать миссии именно под них. Каждый день здесь появляется новый факт из вселенной NieR." },
+          { title:"◇ ЖУРНАЛ", body:"История выполненных миссий. В начале журнала появляется ежедневный факт из вселенной NieR:Automata — обновляется каждый день." },
           { title:"◈ РЕДКОСТЬ", body:"Обычный (60%) · Редкий (25%) · Эпический (12%) · Легендарный (3%). Дубликаты не теряются — предмет просто считается полученным." },
           { title:"📅 ЕЖЕДНЕВНАЯ НАГРАДА", body:"При первом входе каждый день появляется календарь недели. Нажми на награду чтобы забрать её. Каждый день даёт 2 ◈ фрагмента, 7-й день подряд — 5 ◈ + 15 MEM. Если пропустил день — просто получаешь награду следующего дня, неделя не сбрасывается." },
           { title:"💾 СОХРАНЕНИЯ", body:"Прогресс сохраняется автоматически в браузере (localStorage). Не очищай данные браузера — прогресс сотрётся." },
@@ -1165,12 +1165,19 @@ export default function App() {
       let mem = prev.mem + totalMem;
       let fw = prev.fw;
       let memMax = prev.memMax;
-      let up = false;
-      while (mem >= memMax) { mem -= memMax; fw++; memMax = xpFor(fw); up = true; }
+      let levelsGained = 0;
+      const levelsReached = [];
+      while (mem >= memMax) { mem -= memMax; fw++; memMax = xpFor(fw); levelsGained++; levelsReached.push(fw); }
+      const up = levelsGained > 0;
+      // Level-up fragment rewards: 20 for form-unlock levels (5, 9), 10 for all others
+      let levelFrags = 0;
+      for (const lvl of levelsReached) {
+        levelFrags += (lvl === 5 || lvl === 9) ? 20 : 10;
+      }
       const cog = m.spec === "intellect" ? Math.min(10, prev.cog + 1) : prev.cog;
       const syn = m.spec === "creativity" ? Math.min(10, prev.syn + 1) : prev.syn;
-      const frags = prev.frags + reward.frags;
-      const totalFragsEarned = (prev.totalFragsEarned || 0) + reward.frags;
+      const frags = prev.frags + reward.frags + levelFrags;
+      const totalFragsEarned = (prev.totalFragsEarned || 0) + reward.frags + levelFrags;
       const bonusStr = memBonus > 0 ? ` (+${memBonus}⚔)` : "";
       const entry = {
         time: new Date().toLocaleTimeString("ru"),
@@ -1189,6 +1196,11 @@ export default function App() {
       if (up) {
         setTimeout(() => { setFwUp(fw); setTimeout(() => setFwUp(null), 2800); }, 300);
         setTimeout(() => showDialogue("levelUp", { fw }), 3200);
+        const isFormUnlock = levelsReached.some(lvl => lvl === 5 || lvl === 9);
+        const fragRewardMsg = isFormUnlock
+          ? "НОВАЯ ФОРМА · +" + levelFrags + " ◈"
+          : "+" + levelFrags + " ◈ ЗА УРОВЕНЬ";
+        setTimeout(() => toast$(fragRewardMsg, "#c8a882"), 3400);
       }
       const bonusMsg = memBonus > 0 ? ` +${memBonus}⚔` : "";
       toast$("+" + totalMem + bonusMsg + " MEM  +" + reward.frags + " ◈", "#4a9");
@@ -1365,7 +1377,8 @@ export default function App() {
   const fid    = (typeof S.form === "string" && FORMS[S.form]) ? S.form : "sentinel";
   const form   = FORMS[fid];
   const img    = IMGS[fid];
-  const A      = (S.equipped && S.equipped.color) ? S.equipped.color : form.accent;
+  const equippedColorItem = S.equipped && S.equipped.color ? GACHA_POOL.find(i => i.id === S.equipped.color) : null;
+  const A      = (equippedColorItem && equippedColorItem.value) ? equippedColorItem.value : form.accent;
   const missions  = (S.missions || []).sort((a,b) => (b.isEvent?1:0) - (a.isEvent?1:0));
   const completed = S.completed || [];
   const dirs      = S.dirs      || [];
@@ -1473,7 +1486,7 @@ export default function App() {
 
         {/* ── TABS ── */}
         <div style={{ display:"flex", background:"rgba(0,0,0,0.9)", borderBottom:"1px solid #111", position:"sticky", top:0, zIndex:10 }}>
-          {[["missions","◆ МИССИИ"],["unit","◈ ЮНИТ"],["gacha","✦ АРХИВ"],["dirs","▶ ЦЕЛИ"],["log","◇ ЖУРНАЛ"]].map(([id,l]) => (
+          {[["missions","◆ МИССИИ"],["unit","◈ ЮНИТ"],["gacha","✦ АРХИВ"],["log","◇ ЖУРНАЛ"]].map(([id,l]) => (
             <button key={id} onClick={() => setTab(id)}
               style={{ flex:1, padding:"10px 2px", border:"none", background:"transparent", color:tab===id?"#e8e0d0":"#333", borderBottom:"1px solid "+(tab===id?A:"transparent"), fontSize:7, letterSpacing:1, transition:"all 0.2s" }}>
               {l}
@@ -1732,51 +1745,16 @@ export default function App() {
             </div>
           )}
 
-          {/* ── DIRS TAB ── */}
-          {tab === "dirs" && (
+          {/* ── LOG TAB ── */}
+          {tab === "log" && (
             <div>
-              <div style={{ fontSize:9, color:"#444", marginBottom:14, lineHeight:1.8 }}>
-                Директивы — твои реальные цели.<br/>ИИ будет генерировать миссии именно под них.
-              </div>
-              <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-                <input value={dirIn} onChange={e => setDirIn(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && dirIn.trim()) { setS(p => ({ ...p, dirs: [...(p.dirs||[]), dirIn.trim()] })); setDirIn(""); } }}
-                  placeholder="Например: выучить Python..."
-                  style={{ flex:1, background:"transparent", border:"none", borderBottom:"1px solid #222", color:"#e8e0d0", padding:"8px 4px", fontSize:11, outline:"none" }}/>
-                <button onClick={() => { if (dirIn.trim()) { setS(p => ({ ...p, dirs: [...(p.dirs||[]), dirIn.trim()] })); setDirIn(""); } }}
-                  onMouseEnter={e => { e.target.style.borderColor=A; e.target.style.color=A; }}
-                  onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#e8e0d0"; }}
-                  style={{ background:"transparent", border:"1px solid #333", color:"#e8e0d0", padding:"8px 16px", fontSize:16, transition:"all 0.2s" }}>+</button>
-              </div>
-              {dirs.length === 0 && (
-                <div style={{ textAlign:"center", padding:40, color:"#1a1a1a" }}>
-                  <div style={{ fontSize:28, marginBottom:8 }}>▶</div>
-                  <div style={{ fontSize:9, letterSpacing:2 }}>ДИРЕКТИВЫ НЕ ЗАДАНЫ</div>
-                </div>
-              )}
-              {dirs.map((d, i) => (
-                <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 14px", marginBottom:6, border:"1px solid #111", borderLeft:"2px solid "+A+"44" }}>
-                  <span style={{ fontSize:11, color:"#888" }}>▶ {d}</span>
-                  <button onClick={() => setS(p => ({ ...p, dirs: (p.dirs||[]).filter((_,j) => j!==i) }))}
-                    onMouseEnter={e => e.target.style.color="#c44"}
-                    onMouseLeave={e => e.target.style.color="#333"}
-                    style={{ background:"none", border:"none", color:"#333", fontSize:16, transition:"color 0.2s" }}>✕</button>
-                </div>
-              ))}
-
               {/* Daily lore */}
-              <div style={{ marginTop:24, padding:"14px 16px", border:"1px solid #1a1a1a", borderLeft:"2px solid "+A+"44" }}>
+              <div style={{ marginBottom:20, padding:"14px 16px", border:"1px solid #1a1a1a", borderLeft:"2px solid "+A+"44" }}>
                 <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:10 }}>◈ ДАННЫЕ ДНЯ</div>
                 <div style={{ fontSize:11, color:"#555", fontStyle:"italic", lineHeight:1.8 }}>
                   {LORE_DB[Math.floor((Date.now() / 86400000)) % LORE_DB.length]}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* ── LOG TAB ── */}
-          {tab === "log" && (
-            <div>
               {log.length === 0 && (
                 <div style={{ textAlign:"center", padding:40, color:"#1a1a1a" }}>
                   <div style={{ fontSize:28, marginBottom:8 }}>◇</div>
