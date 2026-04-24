@@ -23,5 +23,37 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- Вставь этот блок перед закрывающим тегом </body> в index.html -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => {
+          // Check for updates every time the page loads
+          reg.update();
+
+          // If a new SW is waiting — activate it immediately
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener("statechange", () => {
+              if (
+                newWorker.state === "installed" &&
+                navigator.serviceWorker.controller
+              ) {
+                // New version available — reload to apply
+                navigator.serviceWorker.addEventListener(
+                  "controllerchange",
+                  () => window.location.reload()
+                );
+                newWorker.postMessage({ type: "SKIP_WAITING" });
+              }
+            });
+          });
+        })
+        .catch((err) => console.log("SW registration failed:", err));
+    });
+  }
+</script>
   </body>
 </html>
