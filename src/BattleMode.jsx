@@ -7,23 +7,42 @@ function getStatScale(level) {
   if (level >= 10) return 1.8;
   return 1 + (level - 1) * 0.085;
 }
+function seededRand(seed, idx) {
+  let h = 0x811c9dc5;
+  for (let i=0; i<seed.length; i++) { h ^= seed.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+  h = ((h ^ idx) * 0x01000193) >>> 0;
+  return (h >>> 0) / 0xffffffff;
+}
+const _STAT_RANGES   = { atk:{min:3,max:10}, hp:{min:8,max:25}, crit:{min:1,max:6}, critdmg:{min:4,max:16} };
+const _SLOT_PRIMARY  = { weapon:["atk"], chest:["hp","atk"], head:["hp","crit"], gloves:["atk","critdmg"], boots:["hp","crit"] };
+const _SLOT_SECS     = { weapon:[], chest:["crit","critdmg","atk","hp"], head:["atk","critdmg","crit","hp"], gloves:["hp","crit","critdmg","atk"], boots:["atk","crit","critdmg","hp"] };
+const _PRIM_MULT     = { common:1.5, rare:2.0, epic:2.8, legendary:4.0 };
+const _SEC_MULT      = { common:1.0, rare:1.3, epic:1.7, legendary:2.4 };
 function calcStats(item) {
   if (!item) return { atk:0, hp:0, crit:0, critdmg:0 };
-  const SLOT_BASE = {
-    weapon:{ atk:4,hp:0,crit:1,critdmg:4 }, chest:{ atk:1,hp:10,crit:0,critdmg:0 },
-    head:  { atk:1,hp:7, crit:2,critdmg:0 }, gloves:{ atk:3,hp:3,crit:2,critdmg:5 },
-    boots: { atk:1,hp:8, crit:1,critdmg:2 },
-  };
-  const RARITY_MULT = { common:1, rare:1.4, epic:1.9, legendary:2.8 };
-  const base = SLOT_BASE[item.slot] || { atk:0,hp:0,crit:0,critdmg:0 };
-  const rm   = RARITY_MULT[item.rarity] || 1;
-  const ls   = getStatScale(item.level || 1);
-  return {
-    atk:     Math.round(base.atk     * rm * ls),
-    hp:      Math.round(base.hp      * rm * ls),
-    crit:    Math.round(base.crit    * rm * ls * 10) / 10,
-    critdmg: Math.round(base.critdmg * rm * ls * 10) / 10,
-  };
+  const slot=item.slot||"chest", rid=item.id||"x";
+  if (item.rolledStats) {
+    const ls=getStatScale(item.level||1);
+    return { atk:Math.round((item.rolledStats.stats.atk||0)*ls), hp:Math.round((item.rolledStats.stats.hp||0)*ls), crit:Math.round((item.rolledStats.stats.crit||0)*ls*10)/10, critdmg:Math.round((item.rolledStats.stats.critdmg||0)*ls*10)/10 };
+  }
+  const prims=_SLOT_PRIMARY[slot]||["hp"];
+  const prim=prims[Math.floor(seededRand(rid,0)*prims.length)];
+  const secPool=(_SLOT_SECS[slot]||["hp","atk","crit","critdmg"]).filter(s=>s!==prim);
+  const secs=[]; const used=new Set();
+  if(secPool.length>0){for(let i=0;i<Math.min(3,secPool.length);i++){let t=0,ix;do{ix=Math.floor(seededRand(rid,i*7+t+1)*secPool.length);t++;}while(used.has(ix)&&t<20);used.add(ix);secs.push(secPool[ix%secPool.length]);}}
+  const pm=_PRIM_MULT[item.rarity]||1.5, sm=_SEC_MULT[item.rarity]||1.0;
+  const stats={atk:0,hp:0,crit:0,critdmg:0};
+  const rp=_STAT_RANGES[prim]; stats[prim]=Math.round((rp.min+seededRand(rid,10)*(rp.max-rp.min))*pm*10)/10;
+  secs.forEach((s,i)=>{const rs=_STAT_RANGES[s];const v=(rs.min+seededRand(rid,20+i)*(rs.max-rs.min))*sm;stats[s]=(s==="crit"||s==="critdmg")?Math.round(v*10)/10:Math.round(v);});
+  const lp=getStatScale(item.level||1);
+  const lsec=1+(( item.level||1)-1)*0.025;
+  const result={atk:0,hp:0,crit:0,critdmg:0};
+  for(const st of ["atk","hp","crit","critdmg"]){
+    const base=stats[st]||0; if(!base)continue;
+    const sc=st===prim?lp:lsec;
+    result[st]=(st==="crit"||st==="critdmg")?Math.round(base*sc*10)/10:Math.round(base*sc);
+  }
+  return result;
 }
 function xpFor(fw) {
   const T = [0,100,250,900,1400,2000,2800,3800,5000,6400,8000];
@@ -654,7 +673,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         <div style={{padding:"12px 14px",border:"1px solid #1a1a1a",marginBottom:12}}>
           <div style={{fontSize:8,color:"#444",letterSpacing:2,marginBottom:8}}>ХАРАКТЕРИСТИКИ ЮНИТА</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
-            {[["HP",unitStats.hp,"#4a9"],["ATK",unitStats.atk,"#c8a882"],["КРИТ",unitStats.crit+"%","#44aaff"],["КРУРон","+"+unitStats.critdmg+"%","#aa44cc"]].map(([l,v,c])=>(
+            {[["HP",unitStats.hp,"#4a9"],["ATK",unitStats.atk,"#c8a882"],["КРИТ.ШНС",unitStats.crit+"%","#44aaff"],["КРИТ.УРОН","+"+unitStats.critdmg+"%","#aa44cc"]].map(([l,v,c])=>(
               <div key={l} style={{textAlign:"center"}}>
                 <div style={{fontSize:7,color:"#444",letterSpacing:1}}>{l}</div>
                 <div style={{fontSize:11,fontWeight:700,color:c}}>{v}</div>
