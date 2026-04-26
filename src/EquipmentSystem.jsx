@@ -495,7 +495,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
                         {isEquipped ? <div style={{ fontSize:8, color:rc, letterSpacing:1 }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#444" }}>НАДЕТЬ</div>}
-                        <div style={{ fontSize:7, color:"#2a2a2a", marginTop:2 }}>Lv.1 🔒</div>
+                        <div style={{ fontSize:7, color:"#2a2a2a", marginTop:2 }}>Lv.1</div>
                       </div>
                     </div>
                   );

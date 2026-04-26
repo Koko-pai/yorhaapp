@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { pickMissions, WEAPON_CATEGORY_WEIGHTS } from "./missionBank.js";
+import LOGIC_BANK from "./LOGIC_MISSIONS.js";
 import { getMissionHint } from "./MISSION_HINTS.js";
 import BattleTab, { getDailyBattleMissions, getWaveDrops, MATERIALS, UPGRADE_COSTS, ABILITIES } from "./BattleMode.jsx";
 import EquipmentTab, { EQUIP_SLOTS, SLOT_LABELS, SLOT_ICONS, RARITY_STAT_MULT, STAT_RANGES, EQUIPMENT_SETS, EQUIPMENT_POOL, EQUIPMENT_WEAPON_STYLES, getStatScale, calcStats, rollItemStats, getEquippedItems, getSetBonuses, getSetMemMultiplier } from "./EquipmentSystem.jsx";
@@ -98,7 +99,8 @@ function rewardByThreat(threat) {
 }
 
 // Mission lifetime in ms
-function missionLifetime(threat, isEvent) {
+function missionLifetime(threat, isEvent, isLogic) {
+  if (isLogic) return 15 * 60 * 1000; // 15 минут
   if (isEvent) {
     if (threat === "ВЫСОКАЯ") return 10 * 3600000;
     if (threat === "СРЕДНЯЯ") return 6 * 3600000;
@@ -152,7 +154,7 @@ function mkState(o) {
     frags:      typeof o.frags === "number"     ? o.frags     : 0,
     missions:   Array.isArray(o.missions)       ? o.missions.map(m => ({
       ...m,
-      expiresAt: m.expiresAt || (m.createdAt ? m.createdAt + missionLifetime(m.threat, m.isEvent) : Date.now() + 24*3600000),
+      expiresAt: m.expiresAt || (m.createdAt ? m.createdAt + missionLifetime(m.threat, m.isEvent, m.isLogic) : Date.now() + 24*3600000),
       createdAt: m.createdAt || Date.now(),
     })) : [],
     completed:  Array.isArray(o.completed)      ? o.completed : [],
@@ -270,7 +272,7 @@ function pullGacha() {
 
 // Генерация миссий из банка (вместо AI)
 function genMissions(weaponId) {
-  return pickMissions(3, weaponId, false);
+  return pickMissions(3, weaponId, false, LOGIC_BANK);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -367,33 +369,39 @@ function ReportModal({ mission, accent, onConfirm, onCancel }) {
   );
 }
 
-function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now }) {
+function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, onLogic }) {
   const [h, setH] = useState(false);
   const tc = { "НИЗКАЯ":"#4a9", "СРЕДНЯЯ":"#ca7", "ВЫСОКАЯ":"#c44" };
   const c = tc[m.threat] || "#888";
+  const LC = "#8888ff";
   const baseReward = { "НИЗКАЯ":"20-30", "СРЕДНЯЯ":"40-55", "ВЫСОКАЯ":"65-80" };
   const baseFrags  = { "НИЗКАЯ":"1", "СРЕДНЯЯ":"2-3", "ВЫСОКАЯ":"4-5" };
-  const memStr  = m.isEvent ? (parseInt(baseReward[m.threat]||"40")*2)+"-"+(parseInt((baseReward[m.threat]||"40-55").split("-")[1]||"55")*2) : (baseReward[m.threat]||"?");
-  const fragStr = m.isEvent ? String(parseInt((baseFrags[m.threat]||"2").split("-")[1]||baseFrags[m.threat])*2) : (baseFrags[m.threat]||"?");
+  const memStr  = m.isEvent
+    ? (parseInt(baseReward[m.threat]||"40")*2)+"-"+(parseInt((baseReward[m.threat]||"40-55").split("-")[1]||"55")*2)
+    : m.isLogic ? "65-88" : (baseReward[m.threat]||"?");
+  const fragStr = m.isEvent
+    ? String(parseInt((baseFrags[m.threat]||"2").split("-")[1]||baseFrags[m.threat])*2)
+    : m.isLogic ? "4-5" : (baseFrags[m.threat]||"?");
   const canReroll = !rerollBlocked && rerollsLeft > 0;
   const tLeft = m.expiresAt ? timeLeft(m.expiresAt, now) : null;
-  const isUrgent = m.expiresAt && (m.expiresAt - now) < 3600000; // < 1 hour left
+  const isUrgent = m.expiresAt && (m.expiresAt - now) < 3600000;
 
   return (
     <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
-        background: m.isEvent ? "#120000" : h?"#0d0d0d":"#080808",
-        border: m.isEvent
-          ? "1px solid #cc2222"
+        background: m.isEvent ? "#120000" : m.isLogic ? "#060612" : h?"#0d0d0d":"#080808",
+        border: m.isEvent ? "1px solid #cc2222"
+          : m.isLogic ? "1px solid #6666aa"
           : "1px solid "+(h?"#333":"#1a1a1a"),
-        borderLeft: m.isEvent
-          ? "3px solid #ff2222"
+        borderLeft: m.isEvent ? "3px solid #ff2222"
+          : m.isLogic ? "3px solid " + LC
           : "2px solid "+(m.spec==="intellect"?"#8888cc":"#c8a882"),
         padding:"12px 14px", marginBottom:8, transition:"all 0.2s",
-        boxShadow: m.isEvent ? "0 0 12px #cc000033" : "none",
+        boxShadow: m.isEvent ? "0 0 12px #cc000033" : m.isLogic ? "0 0 12px #8888ff22" : "none",
         animation: m.isEvent ? "eventPulse 2s ease-in-out infinite" : "none",
         position:"relative", overflow:"hidden",
       }}>
+
       {/* Event badge */}
       {m.isEvent && (
         <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
@@ -401,15 +409,25 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now })
           <span style={{ fontSize:8, color:"#ff4444", opacity:0.7 }}>· ДВОЙНАЯ НАГРАДА</span>
         </div>
       )}
+
+      {/* Logic badge */}
+      {m.isLogic && (
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+          <span style={{ fontSize:8, color: LC, letterSpacing:2, fontWeight:700 }}>⬡ ЛОГИЧЕСКАЯ ДИРЕКТИВА</span>
+          <span style={{ fontSize:8, color: LC, opacity:0.6 }}>· 3 ПОПЫТКИ</span>
+        </div>
+      )}
+
       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-        <span style={{ color: m.isEvent?"#ffaaaa":"#e8e0d0", fontSize:11, fontWeight:700, letterSpacing:1 }}>▶ {m.title}</span>
-        <span style={{ fontSize:8, color:c, border:"1px solid "+c, padding:"1px 6px", letterSpacing:1 }}>{m.threat}</span>
+        <span style={{ color: m.isEvent?"#ffaaaa": m.isLogic ? "#bbbbff" :"#e8e0d0", fontSize:11, fontWeight:700, letterSpacing:1 }}>▶ {m.title}</span>
+        {!m.isLogic && <span style={{ fontSize:8, color:c, border:"1px solid "+c, padding:"1px 6px", letterSpacing:1 }}>{m.threat}</span>}
+        {m.isLogic && <span style={{ fontSize:8, color: LC, border:"1px solid "+LC, padding:"1px 6px", letterSpacing:1 }}>ЛОГИКА</span>}
       </div>
       <p style={{ color:"#555", fontSize:10, margin:"0 0 10px", lineHeight:1.6 }}>{m.desc}</p>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-          <span style={{ fontSize:9, color: m.isEvent?"#cc4444":"#444" }}>
-            [{m.spec==="intellect"?"COG":"SYN"}] {memStr} MEM · {fragStr}◈
+          <span style={{ fontSize:9, color: m.isEvent?"#cc4444": m.isLogic ? "#6666aa" :"#444" }}>
+            {m.isLogic ? "[COG]" : "["+((m.spec==="intellect")?"COG":"SYN")+"]"} {memStr} MEM · {fragStr}◈
             {m.isEvent && " ×2"}
           </span>
           {tLeft && (
@@ -419,7 +437,7 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now })
           )}
         </div>
         <div style={{ display:"flex", gap:6 }}>
-          {!m.isEvent && (
+          {!m.isEvent && !m.isLogic && (
             <button onClick={() => onReroll(m.id)} disabled={!canReroll}
               title={rerollBlocked ? "Заблокировано" : rerollsLeft + " перегенерации осталось"}
               onMouseEnter={e => { if(canReroll){ e.target.style.borderColor="#888"; e.target.style.color="#888"; }}}
@@ -428,12 +446,21 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now })
               ↺{rerollsLeft}
             </button>
           )}
-          <button onClick={() => onDone(m)}
-            onMouseEnter={e => { e.target.style.background = m.isEvent?"#cc2222":accent; e.target.style.color = "#000"; }}
-            onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = m.isEvent?"#ff4444":accent; }}
-            style={{ background:"transparent", border:"1px solid "+(m.isEvent?"#cc2222":accent), color:m.isEvent?"#ff4444":accent, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
-            ВЫПОЛНЕНО
-          </button>
+          {m.isLogic ? (
+            <button onClick={() => onLogic(m)}
+              onMouseEnter={e => { e.currentTarget.style.background = LC; e.currentTarget.style.color = "#000"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = LC; }}
+              style={{ background:"transparent", border:"1px solid "+LC, color: LC, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
+              РЕШИТЬ
+            </button>
+          ) : (
+            <button onClick={() => onDone(m)}
+              onMouseEnter={e => { e.target.style.background = m.isEvent?"#cc2222":accent; e.target.style.color = "#000"; }}
+              onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = m.isEvent?"#ff4444":accent; }}
+              style={{ background:"transparent", border:"1px solid "+(m.isEvent?"#cc2222":accent), color:m.isEvent?"#ff4444":accent, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
+              ВЫПОЛНЕНО
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -877,7 +904,7 @@ function GachaOverlay({ result, onClose }) {
   // Show stats for equipment using rollItemStats (iid for unique roll)
   let statLines = [];
   if (isEquip) {
-    const rolled = rollItemStats({ ...result, iid: result.id + "_preview" });
+    const rolled = rollItemStats({ ...result, iid: result.iid || result.id });
     const STAT_LABEL = { atk:"АТК", hp:"HP", crit:"КРИТ.ШНС", critdmg:"КРИТ.УРОН" };
     const STAT_SUFFIX = { atk:"", hp:"", crit:"%", critdmg:"%" };
     const prim = rolled.primary;
@@ -1175,7 +1202,9 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
             )}
             {inbox.length > 0 && (
               <button onClick={onClear}
-                style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"5px 10px", fontSize:8, letterSpacing:1, cursor:"pointer" }}>
+                onMouseEnter={e => { e.target.style.borderColor="#c44"; e.target.style.color="#c44"; }}
+                onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#555"; }}
+                style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"5px 10px", fontSize:8, letterSpacing:1, cursor:"pointer", transition:"all 0.2s" }}>
                 ОЧИСТИТЬ
               </button>
             )}
@@ -1271,11 +1300,158 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
 }
 
 
+
+// ═══════════════════════════════════════════════════════
+// LOGIC MISSION MODAL
+// ═══════════════════════════════════════════════════════
+function LogicModal({ mission, onClose, onSuccess, onFail, accent }) {
+  const [answer, setAnswer] = useState("");
+  const [attempts, setAttempts] = useState(mission.attemptsLeft ?? 3);
+  const [status, setStatus] = useState(null); // "wrong" | "correct" | "failed"
+  const [shake, setShake] = useState(false);
+
+  const isChoice = mission.type === "choice";
+  const isNumber = mission.type === "number";
+
+  const checkAnswer = (val) => {
+    const raw = (val ?? answer).toString().trim().toLowerCase();
+    const correct = mission.answers.some(a => a.toString().toLowerCase() === raw);
+
+    if (correct) {
+      setStatus("correct");
+      setTimeout(() => onSuccess(mission), 1200);
+      return;
+    }
+
+    const left = attempts - 1;
+    setAttempts(left);
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+
+    if (left <= 0) {
+      setStatus("failed");
+      setTimeout(() => onFail(mission), 1800);
+    } else {
+      setStatus("wrong");
+      setTimeout(() => setStatus(null), 1200);
+    }
+    setAnswer("");
+  };
+
+  // Pass remaining attempts to onClose so they aren't lost
+  const handleClose = () => onClose(attempts);
+
+  const attColor = attempts === 3 ? "#4a9" : attempts === 2 ? "#ca7" : "#c44";
+  const LC = "#8888ff"; // logic accent colour
+
+  return (
+    <div onClick={handleClose}
+      style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(0,0,0,0.95)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{
+          background:"#06060e",
+          border:"1px solid #222",
+          borderTop:"2px solid " + LC,
+          maxWidth:460, width:"100%",
+          boxShadow: "0 0 30px #8888ff22",
+          animation: shake ? "shake 0.4s ease" : "none",
+        }}>
+
+        {/* Header */}
+        <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid #111" }}>
+          <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ЛОГИЧЕСКАЯ ДИРЕКТИВА</div>
+          <div style={{ fontSize:12, fontWeight:700, color: LC, letterSpacing:1 }}>{mission.title}</div>
+          <div style={{ display:"flex", gap:10, marginTop:8, alignItems:"center" }}>
+            <span style={{ fontSize:8, color: attColor, border:"1px solid " + attColor, padding:"2px 7px", letterSpacing:1 }}>
+              ПОПЫТОК: {attempts}
+            </span>
+            <span style={{ fontSize:8, color:"#555", letterSpacing:1 }}>ПОВЫШЕННАЯ НАГРАДА</span>
+          </div>
+        </div>
+
+        {/* Task */}
+        <div style={{ padding:"20px" }}>
+          <div style={{ fontSize:11, color:"#999", lineHeight:1.8, marginBottom:20 }}>{mission.desc}</div>
+
+          {/* Status feedback */}
+          {status === "correct" && (
+            <div style={{ padding:"10px", background:"#0a1a0a", border:"1px solid #4a9", color:"#4a9", fontSize:10, letterSpacing:1, textAlign:"center", marginBottom:16 }}>
+              ✓ ВЕРНО — ДИРЕКТИВА ВЫПОЛНЕНА
+            </div>
+          )}
+          {status === "wrong" && (
+            <div style={{ padding:"10px", background:"#1a0a0a", border:"1px solid #c44", color:"#c44", fontSize:10, letterSpacing:1, textAlign:"center", marginBottom:16 }}>
+              ✗ НЕВЕРНО — ОСТАЛОСЬ ПОПЫТОК: {attempts}
+            </div>
+          )}
+          {status === "failed" && (
+            <div style={{ padding:"10px", background:"#1a0a0a", border:"1px solid #c44", color:"#c44", fontSize:10, letterSpacing:1, textAlign:"center", marginBottom:16 }}>
+              ✗ ДИРЕКТИВА ПРОВАЛЕНА — ЗАДАНИЕ АННУЛИРОВАНО
+            </div>
+          )}
+
+          {/* Hint */}
+          {attempts < 3 && status !== "correct" && status !== "failed" && (
+            <div style={{ fontSize:9, color:"#444", fontStyle:"italic", marginBottom:14, padding:"8px 12px", borderLeft:"2px solid #222" }}>
+              ПОДСКАЗКА: {mission.hint}
+            </div>
+          )}
+
+          {/* Input — choice */}
+          {isChoice && status !== "correct" && status !== "failed" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {mission.options.map((opt, i) => (
+                <button key={i} onClick={() => checkAnswer(opt)}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = LC; e.currentTarget.style.color = LC; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#666"; }}
+                  style={{ background:"transparent", border:"1px solid #222", color:"#666", padding:"10px 14px", fontSize:10, textAlign:"left", cursor:"pointer", letterSpacing:0.5, transition:"all 0.15s" }}>
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Input — word/number */}
+          {!isChoice && status !== "correct" && status !== "failed" && (
+            <div style={{ display:"flex", gap:8 }}>
+              <input
+                value={answer}
+                onChange={e => setAnswer(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && answer.trim() && checkAnswer()}
+                placeholder={isNumber ? "Введи число..." : "Введи ответ..."}
+                style={{
+                  flex:1, background:"#0a0a0a", border:"1px solid #333", color:"#e8e0d0",
+                  padding:"10px 12px", fontSize:11, fontFamily:"'Courier New',monospace",
+                  outline:"none", letterSpacing:1,
+                }}
+              />
+              <button onClick={() => answer.trim() && checkAnswer()}
+                onMouseEnter={e => { e.currentTarget.style.background = LC; e.currentTarget.style.color = "#000"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = LC; }}
+                style={{ background:"transparent", border:"1px solid " + LC, color: LC, padding:"10px 16px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.15s" }}>
+                ВВОД
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding:"10px 20px", borderTop:"1px solid #0d0d0d" }}>
+          <div style={{ fontSize:8, color:"#1a1a1a", letterSpacing:2, textAlign:"center" }}>
+            КОГНИТИВНЫЙ ПРОТОКОЛ · YORHA ◈
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [S, setS]               = useState(() => mkState({}));
   const [showWelcome, setShowWelcome] = useState(true);
   const [booting, setBooting]   = useState(true);
-  const [tab, setTab]           = useState("missions");
+  const [tab, setTab_]           = useState("missions");
+  const setTab = (newTab) => { if (newTab !== 'battle' && pauseBattleRef.current) pauseBattleRef.current(); setTab_(newTab); };
   const [loading, setLoading]   = useState(false);
   const [toast, setToast]       = useState(null);
   const [fwUp, setFwUp]         = useState(null);
@@ -1289,6 +1465,8 @@ export default function App() {
   const [now, setNow]             = useState(() => Date.now());
   const [showDaily, setShowDaily] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
+  const [logicMission, setLogicMission] = useState(null); // { mission, attempts }
+  const pauseBattleRef = useRef(null); // holds BattleTab's pause function
 
   // Load from storage on mount - but welcome screen is shown first
   useEffect(() => {
@@ -1395,6 +1573,7 @@ export default function App() {
       // Reward based on threat level
       const reward = rewardByThreat(m.threat);
       if (m.isEvent) { reward.memory = Math.round(reward.memory * 2); reward.frags = reward.frags * 2; }
+      if (m.isLogic) { reward.memory = Math.round(reward.memory * 1.6); reward.frags = reward.frags + 2; }
       // Weapon bonus — check gear.weapon first, fallback to equipped.weapon
       const gear = prev.gear || {};
       const wid = gear.weapon || (prev.equipped && prev.equipped.weapon);
@@ -1456,24 +1635,21 @@ export default function App() {
     if (S.frags < 10) { toast$("Нужно 10 ◈ фрагментов", "#c44"); return; }
     const result = pullGacha();
     const isEquipment = result.type === "equipment";
-    let dupeFrags = 0;
-    let isDupe = false;
+    // Calculate dupe status BEFORE setS using current inventory snapshot
+    const alreadyHas = inArr(S.inventory || [], result.id);
+    const isDupe = isEquipment ? alreadyHas : alreadyHas;
+    const dupeFrags = (!isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5) : 0;
 
     setS(prev => {
       const inv = [...(prev.inventory||[])];
-      const alreadyHas = inArr(inv, result.id);
 
       if (isEquipment) {
         // Equipment: always add with unique iid (different stats each time)
         const iid = result.id + "_" + Date.now();
         inv.push({ id: result.id, iid });
-        dupeFrags = 0;
-        isDupe = alreadyHas; // flag for overlay display
       } else {
-        // Non-equipment: if duplicate → convert to frags, don't add
+        // Non-equipment (titles, colors, lore, weapons): dupe → convert to frags
         if (alreadyHas) {
-          dupeFrags = DUPE_FRAGS[result.rarity] || 5;
-          isDupe = true;
           // Don't push to inventory, just add frags below
         } else {
           inv.push(result.id);
@@ -1490,9 +1666,9 @@ export default function App() {
     });
 
     // Pass dupe info to overlay
-    setGachaResult({ ...result, isDupe, dupeFrags: dupeFrags || 0 });
+    setGachaResult({ ...result, isDupe, dupeFrags });
     setTimeout(() => showDialogue("gacha"), 200);
-  }, [S.frags, toast$, runChecks]);
+  }, [S.frags, S.inventory, toast$, runChecks]);
 
   const showDialogue = (type, params) => {
     const text = getDialogue(type, params);
@@ -1576,7 +1752,7 @@ export default function App() {
       const now = Date.now();
       const wid = ms.map((m, i) => {
         const isEvent = m.isEvent || false;
-        const lifetime = missionLifetime(m.threat, isEvent);
+        const lifetime = missionLifetime(m.threat, isEvent, m.isLogic);
         return {
           ...m,
           id: "m" + now + i,
@@ -1657,16 +1833,28 @@ export default function App() {
       const rerollNow = Date.now();
       const picked = ms[0];
       const isEvent = picked.isEvent || false;
-      const lifetime = missionLifetime(picked.threat, isEvent);
-      const newM = { ...picked, id: missionId, isEvent, expiresAt: rerollNow + lifetime, createdAt: rerollNow };
+      const isLogic = picked.isLogic || false;
+      const lifetime = missionLifetime(picked.threat, isEvent, isLogic);
+      const newM = { ...picked, id: missionId, isEvent, isLogic, expiresAt: rerollNow + lifetime, createdAt: rerollNow };
       const newCount2 = newCount + 1;
+      const newLetter = {
+        id: "l" + missionId + "_r" + rerollNow,
+        missionId: missionId,
+        missionTitle: newM.title,
+        missionThreat: newM.threat,
+        isEvent: newM.isEvent,
+        hint: getMissionHint(newM),
+        read: false,
+        createdAt: rerollNow,
+      };
       setS(p => ({
         ...p,
         missions: (p.missions||[]).map(m => m.id === missionId ? newM : m),
+        inbox: [...(p.inbox||[]).filter(l => l.missionId !== missionId), newLetter].slice(-20),
         rerollCount: newCount2,
         rerollBlock: newCount2 >= 3 ? Date.now() + 3600000 : p.rerollBlock,
       }));
-      toast$("МИССИЯ ОБНОВЛЕНА ◈");
+      toast$("МИССИЯ ОБНОВЛЕНА ◈  ✉ +1");
     } catch(e) {
       toast$("ОШИБКА ПЕРЕГЕНЕРАЦИИ", "#c44");
     }
@@ -1700,6 +1888,7 @@ export default function App() {
         @keyframes eventPulse{0%,100%{box-shadow:0 0 12px #cc000033}50%{box-shadow:0 0 20px #cc000066}}
         @keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
         @keyframes glow{0%,100%{opacity:0.6}50%{opacity:1}}
+        @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
         *{box-sizing:border-box}
         input::placeholder{color:#222;font-family:'Courier New',monospace}
         button{font-family:'Courier New',monospace;cursor:pointer}
@@ -1725,6 +1914,36 @@ export default function App() {
       {showHelp && <HelpPopup onClose={() => setShowHelp(false)} accent={A} />}
       {showSave && <SaveManager state={S} onImport={importSave} onClose={() => setShowSave(false)} accent={A} />}
       {dialogue && <DialoguePopup key={dialogue.id} text={dialogue.text} formId={fid} onClose={() => setDialogue(null)} />}
+      {logicMission && (
+        <LogicModal
+          mission={logicMission}
+          accent={A}
+          onClose={(attemptsLeft) => {
+            // Save remaining attempts so they aren't reset if reopened
+            if (attemptsLeft !== undefined && attemptsLeft < 3) {
+              setS(p => ({
+                ...p,
+                missions: (p.missions||[]).map(x =>
+                  x.id === logicMission.id ? { ...x, attemptsLeft } : x
+                ),
+              }));
+              setLogicMission(prev => prev ? { ...prev, attemptsLeft } : null);
+            }
+            setLogicMission(null);
+          }}
+          onSuccess={(m) => {
+            setLogicMission(null);
+            completeMission(m, null);
+            toast$("⬡ ЛОГИЧЕСКАЯ ДИРЕКТИВА ВЫПОЛНЕНА", "#8888ff");
+          }}
+          onFail={(m) => {
+            setLogicMission(null);
+            // Удаляем миссию как истёкшую
+            setS(p => ({ ...p, missions: (p.missions||[]).filter(x => x.id !== m.id), inbox: (p.inbox||[]).filter(l => l.missionId !== m.id) }));
+            toast$("⬡ ДИРЕКТИВА АННУЛИРОВАНА", "#c44");
+          }}
+        />
+      )}
       {showInbox && (
         <InboxModal
           inbox={inbox}
@@ -1877,7 +2096,8 @@ export default function App() {
                         : ">> ЗАПРОСИТЬ ЗАДАНИЯ У КОМАНДОВАНИЯ [" + gensLeft + "]"}
                     </button>
                     {missions.map(m => <MCard key={m.id} m={m} accent={A} onDone={handleDone}
-                      onReroll={rerollMission} rerollsLeft={rerollsLeft} rerollBlocked={rerollBlocked} now={now} />)}
+                      onReroll={rerollMission} rerollsLeft={rerollsLeft} rerollBlocked={rerollBlocked} now={now}
+                      onLogic={(m) => setLogicMission(m)} />)}
                   </>
                 );
               })()}
@@ -2134,7 +2354,7 @@ export default function App() {
 
           {/* ── BATTLE TAB — always mounted to preserve state ── */}
           <div style={{display: tab === "battle" ? "block" : "none"}}>
-            <BattleTab S={S} setS={setS} accent={A} onToast={toast$} fid={fid} equipmentPool={EQUIPMENT_POOL} gachaPool={GACHA_POOL} />
+            <BattleTab S={S} setS={setS} accent={A} onToast={toast$} fid={fid} equipmentPool={EQUIPMENT_POOL} gachaPool={GACHA_POOL} onRegisterPause={(fn) => { pauseBattleRef.current = fn; }} />
           </div>
 
         </div>

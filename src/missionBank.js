@@ -845,7 +845,6 @@ export const MISSION_BANK = [
   { category:"leisure", spec:"creativity", threat:"НИЗКАЯ", title:"ДОСУГ: ВЕЧЕР НОСТАЛЬГИИ", desc:"Пересмотри или переиграй что-то из детства или ранней юности. Прошлое живёт в памяти." },
   { category:"leisure", spec:"creativity", threat:"НИЗКАЯ", title:"ДОСУГ: ОНЛАЙН — ОТДЫХ В ИГРЕ", desc:"Просто побродя по игровому миру без задач. Созерцательный геймплей — самостоятельная ценность." },
 
-
   // ═══════════════════════════════════════════════════════
   // РАСШИРЕННЫЙ БЛОК: ТВОРЧЕСКИЕ (продолжение)
   // ═══════════════════════════════════════════════════════
@@ -1172,7 +1171,7 @@ export const WEAPON_CATEGORY_WEIGHTS = {
 // MISSION PICKER FUNCTION
 // ═══════════════════════════════════════════════════════
 
-export function pickMissions(count = 3, weaponId = null, forceEvent = false) {
+export function pickMissions(count = 3, weaponId = null, forceEvent = false, logicPool = []) {
   const weights = (weaponId && WEAPON_CATEGORY_WEIGHTS[weaponId])
     ? WEAPON_CATEGORY_WEIGHTS[weaponId]
     : { creative: 20, educational: 20, domestic: 20, student: 20, leisure: 20 };
@@ -1185,10 +1184,18 @@ export function pickMissions(count = 3, weaponId = null, forceEvent = false) {
   const usedIndices = new Set();
 
   for (let i = 0; i < count; i++) {
-    const isEvent = forceEvent || Math.random() < 0.15;
+    const roll = Math.random();
 
+    // 30% — логическая директива (если есть пул)
+    if (!forceEvent && logicPool.length > 0 && roll < 0.20) {
+      const idx = Math.floor(Math.random() * logicPool.length);
+      results.push({ ...logicPool[idx], isLogic: true, category: "logic", threat: "СРЕДНЯЯ", spec: "intellect" });
+      continue;
+    }
+
+    // 15% — эвентовая (или forceEvent)
+    const isEvent = forceEvent || roll < 0.35 && roll >= 0.20;
     if (isEvent && eventPool.length > 0) {
-      // Pick random event mission
       let idx;
       let attempts = 0;
       do {
@@ -1210,7 +1217,6 @@ export function pickMissions(count = 3, weaponId = null, forceEvent = false) {
 
       const pool = regularPool.filter(m => m.category === category);
       if (pool.length === 0) {
-        // Fallback: any regular mission
         const fallback = regularPool[Math.floor(Math.random() * regularPool.length)];
         results.push({ ...fallback });
         continue;

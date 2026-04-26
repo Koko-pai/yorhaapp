@@ -194,7 +194,7 @@ function spawnWave(wave, isBoss) {
 // BATTLE TAB COMPONENT
 // ═══════════════════════════════════════════════════════
 
-export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool, gachaPool }) {
+export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool, gachaPool, onRegisterPause }) {
   const TICK     = 100;
   const ATK_CD   = 1000; // unit auto-attack interval ms
   const ENEMY_CD = 1200; // enemy attack interval ms
@@ -202,6 +202,20 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   // ── Render state ──
   const [phase, setPhase_]                  = useState("lobby");
   const setPhase = (p) => { G.current.phase = p; setPhase_(p); };
+  const [subPanel, setSubPanel]               = useState(null); // "inventory" | "upgrade" | null
+
+  // Register pause function with App so tab switches can auto-pause
+  useEffect(() => {
+    if (onRegisterPause) {
+      onRegisterPause(() => {
+        if (G.current.phase === "fighting") {
+          G.current.phase = "paused";
+          setPhase_("paused");
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRegisterPause]);
   const [displayHP, setDisplayHP]           = useState(100);
   const [displayMaxHP, setDisplayMaxHP]     = useState(100);
   const [displayEnemies, setDisplayEnemies] = useState([]);
@@ -394,9 +408,10 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       if (g.atkTimer >= ATK_CD && g.enemies.length > 0) {
         g.atkTimer = 0;
         const tgt    = g.enemies[0];
-        const isCrit = Math.random()*100 < unitStats.crit;
-        let dmg      = Math.floor(unitStats.atk * (0.85 + Math.random()*0.3));
-        if (isCrit) dmg = Math.floor(dmg * (1 + unitStats.critdmg/100));
+        const fs     = g.frozenStats || unitStats;
+        const isCrit = Math.random()*100 < fs.crit;
+        let dmg      = Math.floor(fs.atk * (0.85 + Math.random()*0.3));
+        if (isCrit) dmg = Math.floor(dmg * (1 + fs.critdmg/100));
         dmg = Math.max(1, dmg);
         tgt.hp = Math.max(0, tgt.hp - dmg);
         flashUnit("attack");
@@ -455,7 +470,9 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   // ── Start battle ──
   const startBattle = () => {
     const g = G.current;
-    const hp = unitStats.hp;
+    // Freeze stats at battle start — upgrades during battle apply next fight
+    g.frozenStats = { ...unitStats };
+    const hp = g.frozenStats.hp;
     g.unitHP=hp; g.unitMaxHP=hp;
     g.enemies=[]; g.wave=0; g.kills=0; g.bossKills=0;
     g.sessionDrops={}; g.podFires=0; g.evadeCount=0;
@@ -493,7 +510,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
 
     if (id === "pod") {
       // POD FIRE: hit ALL enemies for 60% ATK
-      const dmg = Math.max(1, Math.floor(unitStats.atk * 0.6));
+      const dmg = Math.max(1, Math.floor((G.current.frozenStats||unitStats).atk * 0.6));
       let hit = 0;
       for (const e of g.enemies) {
         e.hp = Math.max(0, e.hp - dmg);
@@ -511,7 +528,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       flashUnit("evade");
       if (g.enemies.length > 0) {
         const tgt = g.enemies[0];
-        const dmg = Math.max(1, Math.floor(unitStats.atk * 1.2));
+        const dmg = Math.max(1, Math.floor((G.current.frozenStats||unitStats).atk * 1.2));
         tgt.hp    = Math.max(0, tgt.hp - dmg);
         spawnHit(dmg, false, tgt.x, 15+Math.random()*20, false);
         log("▷ EVADE — рывок +"+dmg+" · неуязвимость 1.5с", "#c8a882");
@@ -525,8 +542,9 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       if (g.enemies.length === 0) { log("⚔ Нет целей", "#555"); g.cds[id]=ab.cooldown; setDisplayCDs({...g.cds}); return; }
       const tgt    = g.enemies[0];
       const isCrit = (tgt.hp / tgt.maxHp) < 0.3;
-      let dmg      = Math.floor(unitStats.atk * 2.0);
-      if (isCrit) dmg = Math.floor(dmg * (1 + unitStats.critdmg/100));
+      const _fs    = G.current.frozenStats||unitStats;
+      let dmg      = Math.floor(_fs.atk * 2.0);
+      if (isCrit) dmg = Math.floor(dmg * (1 + _fs.critdmg/100));
       dmg = Math.max(1, dmg);
       tgt.hp = Math.max(0, tgt.hp - dmg);
       flashUnit("skill");
@@ -571,85 +589,11 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     return { transform:"translateX(0)", filter:"drop-shadow(0 0 5px "+accent+"66)" };
   })();
 
-  if (phase === "inventory") return (
-    <div style={{fontFamily:FF}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-        <button onClick={()=>setPhase("lobby")} style={{background:"none",border:"1px solid #333",color:"#666",padding:"6px 12px",fontSize:9,cursor:"pointer",fontFamily:FF}}>← НАЗАД</button>
-        <div style={{fontSize:8,letterSpacing:3,color:"#444"}}>ИНВЕНТАРЬ · МАТЕРИАЛЫ</div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        {Object.values(MATERIALS).map(mat => {
-          const count = (S.materials||{})[mat.id]||0;
-          return (
-            <div key={mat.id} style={{padding:"12px 14px",border:"1px solid #1a1a1a",borderLeft:"2px solid "+mat.color+"44",background:count>0?mat.color+"0a":"transparent"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontSize:18,color:count>0?mat.color:"#2a2a2a"}}>{mat.icon}</span>
-                <span style={{fontSize:16,fontWeight:700,color:count>0?mat.color:"#2a2a2a"}}>{count}</span>
-              </div>
-              <div style={{fontSize:9,color:count>0?"#888":"#333",letterSpacing:1}}>{mat.name}</div>
-              <div style={{fontSize:8,color:"#333",lineHeight:1.5,marginTop:2}}>{mat.desc}</div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 
-  if (phase === "upgrade") return (
-    <div style={{fontFamily:FF}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-        <button onClick={()=>setPhase("lobby")} style={{background:"none",border:"1px solid #333",color:"#666",padding:"6px 12px",fontSize:9,cursor:"pointer",fontFamily:FF}}>← НАЗАД</button>
-        <div style={{fontSize:8,letterSpacing:3,color:"#444"}}>УЛУЧШЕНИЕ СНАРЯЖЕНИЯ</div>
-      </div>
-      {EQUIP_SLOTS.map(slot => {
-        const id   = (S.gear||{})[slot];
-        const item = id ? ((equipmentPool||[]).find(e=>e.id===id)||(gachaPool||[]).find(e=>e.id===id)) : null;
-        const lvl  = gearLevels[slot]||1;
-        const maxed= lvl>=5;
-        const cost = !maxed && UPGRADE_COSTS[slot] ? UPGRADE_COSTS[slot][lvl] : null;
-        const canUp= canUpgrade(slot);
-        const mats = S.materials||{};
-        return (
-          <div key={slot} style={{marginBottom:12,padding:"14px",border:"1px solid #1a1a1a",borderLeft:"2px solid "+(item?accent+"66":"#1a1a1a")}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <div>
-                <div style={{fontSize:9,color:item?"#888":"#333",letterSpacing:2}}>{SLOT_ICONS[slot]} {SLOT_LABELS[slot]}</div>
-                {item  && <div style={{fontSize:8,color:RARITY_COLORS[item.rarity]||"#444",marginTop:2}}>{item.name}</div>}
-                {!item && <div style={{fontSize:8,color:"#2a2a2a"}}>— нет снаряжения —</div>}
-              </div>
-              <div style={{fontSize:10,color:maxed?"#c8a882":accent,fontWeight:700}}>УР.{lvl}{maxed?" ★":""}</div>
-            </div>
-            {item && !maxed && cost && (
-              <>
-                <div style={{fontSize:8,color:"#444",letterSpacing:1,marginBottom:6}}>→ УР.{lvl+1}:</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
-                  {Object.entries(cost).map(([mk,qty]) => {
-                    const mat=MATERIALS[mk]; const have=mats[mk]||0; const ok=have>=qty;
-                    return mat ? (
-                      <span key={mk} style={{fontSize:8,padding:"3px 8px",border:"1px solid "+(ok?mat.color+"55":"#2a2a2a"),color:ok?mat.color:"#444",background:ok?mat.color+"11":"transparent"}}>
-                        {mat.icon} {mat.name} {have}/{qty}
-                      </span>
-                    ) : null;
-                  })}
-                </div>
-                <button onClick={()=>upgradeGear(slot)} disabled={!canUp}
-                  onMouseEnter={e=>{if(canUp){e.currentTarget.style.background=accent;e.currentTarget.style.color="#000";}}}
-                  onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=canUp?accent:"#333";}}
-                  style={{width:"100%",background:"transparent",border:"1px solid "+(canUp?accent:"#2a2a2a"),color:canUp?accent:"#333",padding:"8px",fontSize:9,letterSpacing:2,cursor:canUp?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:FF}}>
-                  {canUp?"◈ УЛУЧШИТЬ":"МАТЕРИАЛЫ НЕДОСТАТОЧНЫ"}
-                </button>
-              </>
-            )}
-            {item && maxed && <div style={{fontSize:9,color:"#c8a882",letterSpacing:2}}>◆ МАКСИМАЛЬНЫЙ УРОВЕНЬ</div>}
-          </div>
-        );
-      })}
-    </div>
-  );
 
   // ── MAIN VIEW ──
   return (
-    <div style={{fontFamily:FF}}>
+    <div style={{fontFamily:FF, position:"relative"}}>
       <style>{
         "@keyframes floatDmg{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-30px) scale(0.8)}}" +
         "@keyframes floatCrit{0%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-36px) scale(0.7)}}" +
@@ -663,25 +607,32 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       <div style={{fontSize:8,letterSpacing:3,color:"#444",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span>БОЕВОЙ ПРОТОКОЛ</span>
         <div style={{display:"flex",gap:6}}>
-          <button onClick={()=>setPhase("inventory")} style={{background:"none",border:"1px solid #222",color:"#555",padding:"2px 8px",fontSize:8,cursor:"pointer",letterSpacing:1,fontFamily:FF}}>◉ СКЛАД</button>
-          <button onClick={()=>setPhase("upgrade")}   style={{background:"none",border:"1px solid #222",color:"#555",padding:"2px 8px",fontSize:8,cursor:"pointer",letterSpacing:1,fontFamily:FF}}>◈ АПГРЕЙД</button>
+          <button onClick={()=>{ if (G.current.phase === "fighting") { G.current.phase = "paused"; setPhase_("paused"); } setSubPanel("inventory"); }} style={{background:"none",border:"1px solid #222",color:"#555",padding:"2px 8px",fontSize:8,cursor:"pointer",letterSpacing:1,fontFamily:FF}}>◉ СКЛАД</button>
+          <button onClick={()=>{ if (G.current.phase === "fighting") { G.current.phase = "paused"; setPhase_("paused"); } setSubPanel("upgrade"); }} style={{background:"none",border:"1px solid #222",color:"#555",padding:"2px 8px",fontSize:8,cursor:"pointer",letterSpacing:1,fontFamily:FF}}>◈ АПГРЕЙД</button>
         </div>
       </div>
 
-      {/* Unit stats (lobby) */}
-      {phase==="lobby" && (
-        <div style={{padding:"12px 14px",border:"1px solid #1a1a1a",marginBottom:12}}>
-          <div style={{fontSize:8,color:"#444",letterSpacing:2,marginBottom:8}}>ХАРАКТЕРИСТИКИ ЮНИТА</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
-            {[["HP",unitStats.hp,"#4a9"],["ATK",unitStats.atk,"#c8a882"],["КРИТ.ШНС",unitStats.crit+"%","#44aaff"],["КРИТ.УРОН","+"+unitStats.critdmg+"%","#aa44cc"]].map(([l,v,c])=>(
-              <div key={l} style={{textAlign:"center"}}>
-                <div style={{fontSize:7,color:"#444",letterSpacing:1}}>{l}</div>
-                <div style={{fontSize:11,fontWeight:700,color:c}}>{v}</div>
-              </div>
-            ))}
+      {/* Unit stats — always visible */}
+      {(() => {
+        const inBattle = phase !== "lobby" && phase !== "dead";
+        const displayStats = (inBattle && G.current.frozenStats) ? G.current.frozenStats : unitStats;
+        return (
+          <div style={{padding:"12px 14px",border:"1px solid #1a1a1a",marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:8,color:"#444",letterSpacing:2}}>ХАРАКТЕРИСТИКИ ЮНИТА</div>
+              {inBattle && <div style={{fontSize:7,color:"#555",letterSpacing:1}}>◈ ТЕКУЩИЙ БОЙ</div>}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
+              {[["HP",displayStats.hp,"#4a9"],["ATK",displayStats.atk,"#c8a882"],["КРИТ.ШНС",displayStats.crit+"%","#44aaff"],["КРИТ.УРОН","+"+displayStats.critdmg+"%","#aa44cc"]].map(([l,v,c])=>(
+                <div key={l} style={{textAlign:"center"}}>
+                  <div style={{fontSize:7,color:"#444",letterSpacing:1}}>{l}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:c}}>{v}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Daily missions */}
       <div style={{marginBottom:12,padding:"12px 14px",border:"1px solid #1a1a1a"}}>
@@ -746,9 +697,25 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         <div style={{position:"absolute",top:5,left:8,fontSize:8,color:"rgba(0,0,0,0.45)",letterSpacing:2,fontFamily:FF}}>
           {phase==="lobby"&&"ОЖИДАНИЕ"}
           {phase==="fighting"&&("ВОЛНА "+wave+(eventBoss?" ⚠ СОБЫТИЙНЫЙ БОСС":""))}
+          {phase==="paused"&&"⏸ ПАУЗА"}
           {phase==="waveResult"&&("ВОЛНА "+wave+" — ОЧИЩЕНА")}
           {phase==="dead"&&"ЮНИТ УНИЧТОЖЕН"}
         </div>
+
+        {/* PAUSE BUTTON — inside arena, top-right, visible only when fighting */}
+        {phase==="fighting" && (
+          <button
+            onClick={()=>{ G.current.phase="paused"; setPhase("paused"); }}
+            style={{
+              position:"absolute", top:4, right:6,
+              background:"rgba(0,0,0,0.25)", border:"1px solid rgba(0,0,0,0.3)",
+              color:"rgba(0,0,0,0.55)", padding:"2px 7px", fontSize:8,
+              cursor:"pointer", fontFamily:FF, letterSpacing:1, zIndex:6,
+              borderRadius:1,
+            }}>
+            ⏸
+          </button>
+        )}
 
         {/* UNIT SPRITE */}
         {phase!=="lobby" && (
@@ -845,6 +812,31 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
             <div style={{fontSize:8,color:"#888",letterSpacing:2}}>волна {wave} · {kills} уничтожено</div>
           </div>
         )}
+
+        {/* PAUSE OVERLAY — inside arena */}
+        {phase==="paused" && (
+          <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.72)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",fontFamily:FF,zIndex:11}}>
+            <div style={{fontSize:9,color:"#888",letterSpacing:4,marginBottom:4}}>◈ YORHA PROTOCOL</div>
+            <div style={{fontSize:14,fontWeight:700,color:"#e8e0d0",letterSpacing:4,marginBottom:4}}>ПАУЗА</div>
+            <div style={{fontSize:8,color:"#555",letterSpacing:2,marginBottom:20}}>ВОЛНА {wave} · {kills} УНИЧТОЖЕНО</div>
+            <div style={{display:"flex",gap:10}}>
+              <button
+                onClick={()=>{ G.current.phase="fighting"; setPhase("fighting"); }}
+                onMouseEnter={e=>{e.currentTarget.style.background=accent;e.currentTarget.style.color="#000";}}
+                onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=accent;}}
+                style={{background:"transparent",border:"1px solid "+accent,color:accent,padding:"8px 18px",fontSize:9,letterSpacing:2,cursor:"pointer",transition:"all 0.2s",fontFamily:FF}}>
+                ▶ ПРОДОЛЖИТЬ
+              </button>
+              <button
+                onClick={()=>{ clearInterval(tickRef.current); G.current.phase="dead"; setPhase("dead"); setSessionDrops({...G.current.sessionDrops}); saveRewards(); }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor="#c44";e.currentTarget.style.color="#c44";}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor="#444";e.currentTarget.style.color="#666";}}
+                style={{background:"transparent",border:"1px solid #444",color:"#666",padding:"8px 14px",fontSize:9,letterSpacing:2,cursor:"pointer",transition:"all 0.2s",fontFamily:FF}}>
+                ✕ ЗАВЕРШИТЬ
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ABILITY BUTTONS */}
@@ -915,6 +907,89 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
           {battleLog.slice(0,10).map(e=>(
             <div key={e.id} style={{fontSize:8,color:e.color,letterSpacing:1,marginBottom:2,fontFamily:FF}}>{e.msg}</div>
           ))}
+        </div>
+      )}
+
+      {/* ── INVENTORY SUBPANEL OVERLAY ── */}
+      {subPanel === "inventory" && (
+        <div style={{position:"absolute",inset:0,background:"#000",zIndex:20,overflowY:"auto",fontFamily:FF,padding:"0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"0 0 12px 0",borderBottom:"1px solid #111"}}>
+            <button onClick={()=>setSubPanel(null)} style={{background:"none",border:"1px solid #333",color:"#666",padding:"6px 12px",fontSize:9,cursor:"pointer",fontFamily:FF}}>← НАЗАД</button>
+            <div style={{fontSize:8,letterSpacing:3,color:"#444"}}>ИНВЕНТАРЬ · МАТЕРИАЛЫ</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {Object.values(MATERIALS).map(mat => {
+              const count = (S.materials||{})[mat.id]||0;
+              return (
+                <div key={mat.id} style={{padding:"12px 14px",border:"1px solid #1a1a1a",borderLeft:"2px solid "+mat.color+"44",background:count>0?mat.color+"0a":"transparent"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <span style={{fontSize:18,color:count>0?mat.color:"#2a2a2a"}}>{mat.icon}</span>
+                    <span style={{fontSize:16,fontWeight:700,color:count>0?mat.color:"#2a2a2a"}}>{count}</span>
+                  </div>
+                  <div style={{fontSize:9,color:count>0?"#888":"#333",letterSpacing:1}}>{mat.name}</div>
+                  <div style={{fontSize:8,color:"#333",lineHeight:1.5,marginTop:2}}>{mat.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── UPGRADE SUBPANEL OVERLAY ── */}
+      {subPanel === "upgrade" && (
+        <div style={{position:"absolute",inset:0,background:"#000",zIndex:20,overflowY:"auto",fontFamily:FF,padding:"0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16,padding:"0 0 12px 0",borderBottom:"1px solid #111"}}>
+            <button onClick={()=>setSubPanel(null)} style={{background:"none",border:"1px solid #333",color:"#666",padding:"6px 12px",fontSize:9,cursor:"pointer",fontFamily:FF}}>← НАЗАД</button>
+            <div style={{fontSize:8,letterSpacing:3,color:"#444"}}>УЛУЧШЕНИЕ СНАРЯЖЕНИЯ</div>
+          </div>
+          {(phase === "paused" || phase === "fighting" || phase === "waveResult") && (
+            <div style={{marginBottom:14,padding:"8px 12px",background:"#0a0800",border:"1px solid #c8a88233",borderLeft:"2px solid #c8a882"}}>
+              <div style={{fontSize:8,color:"#c8a882",letterSpacing:1}}>⚠ БОЙ АКТИВЕН — улучшения вступят в силу со следующей битвы</div>
+            </div>
+          )}
+          {EQUIP_SLOTS.map(slot => {
+            const id   = (S.gear||{})[slot];
+            const item = id ? ((equipmentPool||[]).find(e=>e.id===id)||(gachaPool||[]).find(e=>e.id===id)) : null;
+            const lvl  = gearLevels[slot]||1;
+            const maxed= lvl>=5;
+            const cost = !maxed && UPGRADE_COSTS[slot] ? UPGRADE_COSTS[slot][lvl] : null;
+            const canUp= canUpgrade(slot);
+            const mats = S.materials||{};
+            return (
+              <div key={slot} style={{marginBottom:12,padding:"14px",border:"1px solid #1a1a1a",borderLeft:"2px solid "+(item?accent+"66":"#1a1a1a")}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div>
+                    <div style={{fontSize:9,color:item?"#888":"#333",letterSpacing:2}}>{SLOT_ICONS[slot]} {SLOT_LABELS[slot]}</div>
+                    {item  && <div style={{fontSize:8,color:RARITY_COLORS[item.rarity]||"#444",marginTop:2}}>{item.name}</div>}
+                    {!item && <div style={{fontSize:8,color:"#2a2a2a"}}>— нет снаряжения —</div>}
+                  </div>
+                  <div style={{fontSize:10,color:maxed?"#c8a882":accent,fontWeight:700}}>УР.{lvl}{maxed?" ★":""}</div>
+                </div>
+                {item && !maxed && cost && (
+                  <>
+                    <div style={{fontSize:8,color:"#444",letterSpacing:1,marginBottom:6}}>→ УР.{lvl+1}:</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:10}}>
+                      {Object.entries(cost).map(([mk,qty]) => {
+                        const mat=MATERIALS[mk]; const have=mats[mk]||0; const ok=have>=qty;
+                        return mat ? (
+                          <span key={mk} style={{fontSize:8,padding:"3px 8px",border:"1px solid "+(ok?mat.color+"55":"#2a2a2a"),color:ok?mat.color:"#444",background:ok?mat.color+"11":"transparent"}}>
+                            {mat.icon} {mat.name} {have}/{qty}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                    <button onClick={()=>upgradeGear(slot)} disabled={!canUp}
+                      onMouseEnter={e=>{if(canUp){e.currentTarget.style.background=accent;e.currentTarget.style.color="#000";}}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color=canUp?accent:"#333";}}
+                      style={{width:"100%",background:"transparent",border:"1px solid "+(canUp?accent:"#2a2a2a"),color:canUp?accent:"#333",padding:"8px",fontSize:9,letterSpacing:2,cursor:canUp?"pointer":"not-allowed",transition:"all 0.2s",fontFamily:FF}}>
+                      {canUp?"◈ УЛУЧШИТЬ":"МАТЕРИАЛЫ НЕДОСТАТОЧНЫ"}
+                    </button>
+                  </>
+                )}
+                {item && maxed && <div style={{fontSize:9,color:"#c8a882",letterSpacing:2}}>◆ МАКСИМАЛЬНЫЙ УРОВЕНЬ</div>}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
