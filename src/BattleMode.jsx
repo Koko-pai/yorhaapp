@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from "react";
 
 // ── Helpers ──
 function getStatScale(level) {
-  if (level >= 30) return 6.0;
-  if (level >= 20) return 3.2;
-  if (level >= 10) return 1.8;
-  return 1 + (level - 1) * 0.085;
+  if (level >= 30) return 4.0;
+  if (level >= 20) return 2.4;
+  if (level >= 10) return 1.6;
+  return 1 + (level - 1) * 0.075;
 }
 function seededRand(seed, idx) {
   let h = 0x811c9dc5;
@@ -13,14 +13,23 @@ function seededRand(seed, idx) {
   h = ((h ^ idx) * 0x01000193) >>> 0;
   return (h >>> 0) / 0xffffffff;
 }
-const _STAT_RANGES   = { atk:{min:3,max:10}, hp:{min:8,max:25}, crit:{min:1,max:6}, critdmg:{min:4,max:16} };
+const _STAT_RANGES   = { atk:{min:2,max:12}, hp:{min:8,max:25}, crit:{min:1,max:6}, critdmg:{min:4,max:16} };
 const _SLOT_PRIMARY  = { weapon:["atk"], chest:["hp","atk"], head:["hp","crit"], gloves:["atk","critdmg"], boots:["hp","crit"] };
-const _SLOT_SECS     = { weapon:[], chest:["crit","critdmg","atk","hp"], head:["atk","critdmg","crit","hp"], gloves:["hp","crit","critdmg","atk"], boots:["atk","crit","critdmg","hp"] };
-const _PRIM_MULT     = { common:1.5, rare:2.0, epic:2.8, legendary:4.0 };
-const _SEC_MULT      = { common:1.0, rare:1.3, epic:1.7, legendary:2.4 };
+const _SLOT_SECS     = { weapon:["crit","critdmg","hp"], chest:["crit","critdmg","atk","hp"], head:["atk","critdmg","crit","hp"], gloves:["hp","crit","critdmg","atk"], boots:["atk","crit","critdmg","hp"] };
+const _STAT_BANDS = {
+  hp:      { common:{sec:[8,10],  prim:[12,14]}, rare:{sec:[13,15], prim:[17,19]}, epic:{sec:[17,19], prim:[21,23]}, legendary:{sec:[21,23], prim:[24,25]} },
+  atk:     { common:{sec:[2,3],   prim:[4,5]},   rare:{sec:[5,6],   prim:[7,8]},   epic:{sec:[7,8],   prim:[9,10]},  legendary:{sec:[9,10],  prim:[11,12]} },
+  crit:    { common:{sec:[1.0,1.8],prim:[2.0,2.8]}, rare:{sec:[2.0,2.8],prim:[3.0,3.8]}, epic:{sec:[3.0,3.8],prim:[4.0,4.8]}, legendary:{sec:[4.0,4.8],prim:[5.0,6.0]} },
+  critdmg: { common:{sec:[4,6],   prim:[7,9]},   rare:{sec:[7,9],   prim:[10,12]}, epic:{sec:[10,12], prim:[13,14]}, legendary:{sec:[12,14], prim:[15,16]} },
+};
+function _rollBand(statKey, rarity, roll, isPrimary) {
+  const band=(_STAT_BANDS[statKey]?.[rarity]||_STAT_BANDS[statKey].common)[isPrimary?"prim":"sec"];
+  const val=band[0]+roll*(band[1]-band[0]);
+  return (statKey==="crit"||statKey==="critdmg")?Math.round(val*10)/10:Math.round(val);
+}
 function calcStats(item) {
   if (!item) return { atk:0, hp:0, crit:0, critdmg:0 };
-  const slot=item.slot||"chest", rid=item.id||"x";
+  const slot=item.slot||(item.type==="weapon"?"weapon":"chest"), rid=item.id||"x";
   if (item.rolledStats) {
     const ls=getStatScale(item.level||1);
     return { atk:Math.round((item.rolledStats.stats.atk||0)*ls), hp:Math.round((item.rolledStats.stats.hp||0)*ls), crit:Math.round((item.rolledStats.stats.crit||0)*ls*10)/10, critdmg:Math.round((item.rolledStats.stats.critdmg||0)*ls*10)/10 };
@@ -29,11 +38,11 @@ function calcStats(item) {
   const prim=prims[Math.floor(seededRand(rid,0)*prims.length)];
   const secPool=(_SLOT_SECS[slot]||["hp","atk","crit","critdmg"]).filter(s=>s!==prim);
   const secs=[]; const used=new Set();
-  if(secPool.length>0){for(let i=0;i<Math.min(3,secPool.length);i++){let t=0,ix;do{ix=Math.floor(seededRand(rid,i*7+t+1)*secPool.length);t++;}while(used.has(ix)&&t<20);used.add(ix);secs.push(secPool[ix%secPool.length]);}}
-  const pm=_PRIM_MULT[item.rarity]||1.5, sm=_SEC_MULT[item.rarity]||1.0;
+  if(secPool.length>0){for(let i=0;i<(slot==="weapon"?1:Math.min(3,secPool.length));i++){let t=0,ix;do{ix=Math.floor(seededRand(rid,i*7+t+1)*secPool.length);t++;}while(used.has(ix)&&t<20);used.add(ix);secs.push(secPool[ix%secPool.length]);}}
+  const rar=item.rarity||"common";
   const stats={atk:0,hp:0,crit:0,critdmg:0};
-  const rp=_STAT_RANGES[prim]; stats[prim]=Math.round((rp.min+seededRand(rid,10)*(rp.max-rp.min))*pm*10)/10;
-  secs.forEach((s,i)=>{const rs=_STAT_RANGES[s];const v=(rs.min+seededRand(rid,20+i)*(rs.max-rs.min))*sm;stats[s]=(s==="crit"||s==="critdmg")?Math.round(v*10)/10:Math.round(v);});
+  stats[prim]=_rollBand(prim,rar,seededRand(rid,10),true);
+  secs.forEach((s,i)=>{stats[s]=_rollBand(s,rar,seededRand(rid,20+i),false);});
   const lp=getStatScale(item.level||1);
   const lsec=1+(( item.level||1)-1)*0.025;
   const result={atk:0,hp:0,crit:0,critdmg:0};
@@ -70,11 +79,11 @@ export const MATERIALS = {
 };
 
 export const UPGRADE_COSTS = {
-  weapon: [ null, {iron:5,core:2}, {iron:10,core:4,oil:3}, {iron:15,core:8,alloy:2}, {iron:25,core:12,alloy:5,signal:1} ],
-  chest:  [ null, {iron:8,oil:3},  {iron:14,oil:6,core:2}, {iron:20,oil:10,core:5,alloy:2}, {iron:30,oil:15,core:8,alloy:4,signal:2} ],
-  head:   [ null, {iron:6,oil:2},  {iron:10,oil:4,core:3}, {iron:16,oil:8,core:6,alloy:1},  {iron:24,oil:12,core:9,alloy:3,signal:1} ],
-  gloves: [ null, {iron:5,core:1,memory:2}, {iron:9,core:3,memory:5}, {iron:15,core:6,memory:8,alloy:2}, {iron:22,core:10,memory:12,alloy:4,signal:1} ],
-  boots:  [ null, {iron:7,oil:2,memory:2},  {iron:12,oil:5,memory:5,core:2}, {iron:18,oil:9,memory:8,core:6,alloy:1}, {iron:26,oil:14,memory:11,core:9,alloy:3,signal:1} ],
+  weapon: [ null, {iron:5,core:2}, {iron:6,core:2}, {iron:7,core:3}, {iron:7,core:3}, {iron:14,core:6,alloy:2}, {iron:16,core:6,alloy:2}, {iron:17,core:7,alloy:2}, {iron:18,core:7,alloy:2}, {iron:20,core:8,alloy:3}, {iron:47,core:19,alloy:6}, {iron:50,core:20,alloy:7}, {iron:53,core:21,alloy:7}, {iron:56,core:22,alloy:8}, {iron:59,core:24,alloy:8}, {iron:62,core:25,alloy:9,signal:1,memory:1}, {iron:65,core:26,alloy:9,signal:1,memory:1}, {iron:68,core:27,alloy:10,signal:1,memory:1}, {iron:71,core:28,alloy:10,signal:2,memory:2}, {iron:74,core:30,alloy:11,signal:2,memory:2}, {iron:173,core:69,alloy:25,signal:2,memory:2}, {iron:180,core:72,alloy:26,signal:2,memory:2}, {iron:187,core:75,alloy:27,signal:2,memory:2}, {iron:194,core:77,alloy:28,signal:3,memory:3}, {iron:200,core:80,alloy:30,signal:3,memory:3}, {iron:207,core:83,alloy:31,signal:3,memory:3}, {iron:214,core:86,alloy:32,signal:3,memory:3}, {iron:221,core:88,alloy:33,signal:3,memory:3}, {iron:227,core:91,alloy:34,signal:4,memory:4}, {iron:234,core:94,alloy:35,signal:4,memory:4} ],
+  chest:  [ null, {iron:8,oil:3}, {iron:9,oil:3}, {iron:10,oil:4}, {iron:12,oil:4}, {iron:23,oil:9,core:4,alloy:2}, {iron:25,oil:9,core:4,alloy:2}, {iron:27,oil:10,core:4,alloy:2}, {iron:30,oil:11,core:5,alloy:2}, {iron:32,oil:12,core:5,alloy:3}, {iron:75,oil:28,core:13,alloy:6}, {iron:80,oil:30,core:14,alloy:7}, {iron:85,oil:32,core:15,alloy:7}, {iron:90,oil:34,core:16,alloy:8}, {iron:94,oil:35,core:17,alloy:8}, {iron:99,oil:37,core:18,alloy:9,signal:1,memory:2}, {iron:104,oil:39,core:19,alloy:9,signal:1,memory:2}, {iron:109,oil:41,core:20,alloy:10,signal:1,memory:3}, {iron:114,oil:43,core:20,alloy:10,signal:2,memory:3}, {iron:118,oil:44,core:21,alloy:11,signal:2,memory:4}, {iron:277,oil:104,core:50,alloy:25,signal:2,memory:4}, {iron:288,oil:108,core:53,alloy:26,signal:2,memory:4}, {iron:299,oil:112,core:55,alloy:27,signal:2,memory:5}, {iron:310,oil:116,core:57,alloy:28,signal:3,memory:5}, {iron:320,oil:120,core:59,alloy:30,signal:3,memory:6}, {iron:331,oil:124,core:61,alloy:31,signal:3,memory:6}, {iron:342,oil:128,core:63,alloy:32,signal:3,memory:6}, {iron:353,oil:132,core:66,alloy:33,signal:3,memory:7}, {iron:364,oil:136,core:68,alloy:34,signal:4,memory:7}, {iron:374,oil:140,core:70,alloy:35,signal:4,memory:8} ],
+  head:   [ null, {iron:6,oil:2}, {iron:7,oil:2}, {iron:8,oil:3}, {iron:9,oil:3}, {iron:17,oil:6,core:4,alloy:2}, {iron:19,oil:6,core:4,alloy:2}, {iron:21,oil:7,core:4,alloy:2}, {iron:22,oil:7,core:5,alloy:2}, {iron:24,oil:8,core:5,alloy:3}, {iron:56,oil:19,core:13,alloy:6}, {iron:60,oil:20,core:14,alloy:7}, {iron:64,oil:21,core:15,alloy:7}, {iron:67,oil:22,core:16,alloy:8}, {iron:71,oil:24,core:17,alloy:8}, {iron:74,oil:25,core:18,alloy:9,signal:1}, {iron:78,oil:26,core:19,alloy:9,signal:1}, {iron:82,oil:27,core:20,alloy:10,signal:1}, {iron:85,oil:28,core:20,alloy:10,signal:2}, {iron:89,oil:30,core:21,alloy:11,signal:2}, {iron:208,oil:69,core:50,alloy:25,signal:2}, {iron:216,oil:72,core:53,alloy:26,signal:2}, {iron:224,oil:75,core:55,alloy:27,signal:2}, {iron:232,oil:77,core:57,alloy:28,signal:3}, {iron:240,oil:80,core:59,alloy:30,signal:3}, {iron:248,oil:83,core:61,alloy:31,signal:3}, {iron:257,oil:86,core:63,alloy:32,signal:3}, {iron:265,oil:88,core:66,alloy:33,signal:3}, {iron:273,oil:91,core:68,alloy:34,signal:4}, {iron:281,oil:94,core:70,alloy:35,signal:4} ],
+  gloves: [ null, {iron:5,core:1,memory:2}, {iron:6,core:1,memory:2}, {iron:7,core:1,memory:3}, {iron:7,core:1,memory:3}, {iron:14,core:3,memory:6,alloy:2}, {iron:16,core:3,memory:6,alloy:2}, {iron:17,core:3,memory:7,alloy:2}, {iron:18,core:4,memory:7,alloy:2}, {iron:20,core:4,memory:8,alloy:3}, {iron:47,core:9,memory:19,alloy:6}, {iron:50,core:10,memory:20,alloy:7}, {iron:53,core:11,memory:21,alloy:7}, {iron:56,core:11,memory:22,alloy:8}, {iron:59,core:12,memory:24,alloy:8}, {iron:62,core:12,memory:25,alloy:9,signal:1}, {iron:65,core:13,memory:26,alloy:9,signal:1}, {iron:68,core:14,memory:27,alloy:10,signal:1}, {iron:71,core:14,memory:28,alloy:10,signal:2}, {iron:74,core:15,memory:30,alloy:11,signal:2}, {iron:173,core:35,memory:69,alloy:25,signal:2}, {iron:180,core:36,memory:72,alloy:26,signal:2}, {iron:187,core:37,memory:75,alloy:27,signal:2}, {iron:194,core:39,memory:77,alloy:28,signal:3}, {iron:200,core:40,memory:80,alloy:30,signal:3}, {iron:207,core:41,memory:83,alloy:31,signal:3}, {iron:214,core:43,memory:86,alloy:32,signal:3}, {iron:221,core:44,memory:88,alloy:33,signal:3}, {iron:227,core:45,memory:91,alloy:34,signal:4}, {iron:234,core:47,memory:94,alloy:35,signal:4} ],
+  boots:  [ null, {iron:7,oil:2,memory:2}, {iron:8,oil:2,memory:2}, {iron:9,oil:3,memory:3}, {iron:10,oil:3,memory:3}, {iron:20,oil:6,memory:6,core:4,alloy:2}, {iron:22,oil:6,memory:6,core:4,alloy:2}, {iron:24,oil:7,memory:7,core:4,alloy:2}, {iron:26,oil:7,memory:7,core:5,alloy:2}, {iron:28,oil:8,memory:8,core:5,alloy:3}, {iron:66,oil:19,memory:19,core:13,alloy:6}, {iron:70,oil:20,memory:20,core:14,alloy:7}, {iron:74,oil:21,memory:21,core:15,alloy:7}, {iron:78,oil:22,memory:22,core:16,alloy:8}, {iron:83,oil:24,memory:24,core:17,alloy:8}, {iron:87,oil:25,memory:25,core:18,alloy:9,signal:1}, {iron:91,oil:26,memory:26,core:19,alloy:9,signal:1}, {iron:95,oil:27,memory:27,core:20,alloy:10,signal:1}, {iron:99,oil:28,memory:28,core:20,alloy:10,signal:2}, {iron:104,oil:30,memory:30,core:21,alloy:11,signal:2}, {iron:243,oil:69,memory:69,core:50,alloy:25,signal:2}, {iron:252,oil:72,memory:72,core:53,alloy:26,signal:2}, {iron:261,oil:75,memory:75,core:55,alloy:27,signal:2}, {iron:271,oil:77,memory:77,core:57,alloy:28,signal:3}, {iron:280,oil:80,memory:80,core:59,alloy:30,signal:3}, {iron:290,oil:83,memory:83,core:61,alloy:31,signal:3}, {iron:299,oil:86,memory:86,core:63,alloy:32,signal:3}, {iron:309,oil:88,memory:88,core:66,alloy:33,signal:3}, {iron:318,oil:91,memory:91,core:68,alloy:34,signal:4}, {iron:328,oil:94,memory:94,core:70,alloy:35,signal:4} ],
 };
 
 const ENEMIES = [
@@ -176,7 +185,7 @@ function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool)
 }
 
 function spawnWave(wave, isBoss) {
-  const scale = 1 + wave * 0.07;
+  const scale = 1 + wave * 0.10;
   if (isBoss) {
     const b = BOSSES[Math.floor(Math.random()*BOSSES.length)];
     const hp = Math.round(b.hp * scale);
@@ -234,7 +243,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const G = useRef({
     phase:"lobby", unitHP:100, unitMaxHP:100,
     enemies:[], wave:0, kills:0, bossKills:0,
-    sessionDrops:{}, podFires:0, evadeCount:0,
+    sessionDrops:{}, podFires:0, evadeCount:0, eventBossKills:0,
     hitThisWave:false, eventBoss:false,
     perfectWaveAchieved:false,
     cds:{ pod:0, evade:0, blade:0 },
@@ -314,8 +323,12 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       const today2 = todayStr();
       let bmt = prev.battleMemDate===today2 ? (prev.battleMemToday||0) : 0;
       let memReward = 0;
-      if (g.wave >= 5) memReward = Math.min(300-bmt, Math.round(2+(g.wave-5)*0.5));
-      bmt = Math.min(300, bmt+memReward);
+      if (g.wave >= 5) {
+        const waveReward = Math.round(5 + (g.wave - 5) * 0.8);
+        const bossBonus  = (g.bossKills || 0) * 10 + (g.eventBossKills || 0) * 10;
+        memReward = Math.min(500 - bmt, waveReward + bossBonus);
+      }
+      bmt = Math.min(500, bmt + memReward);
 
       let mem=prev.mem+memReward, fw=prev.fw, memMax=prev.memMax;
       while (mem>=memMax) { mem-=memMax; fw++; memMax=xpFor(fw); }
@@ -426,7 +439,11 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       if (dead.length) {
         const wasBoss = dead.some(e=>e.isBoss);
         g.kills      += dead.length;
-        if (wasBoss) g.bossKills += dead.filter(e=>e.isBoss).length;
+        if (wasBoss) {
+          const bossCount = dead.filter(e=>e.isBoss).length;
+          g.bossKills += bossCount;
+          if (g.eventBoss) g.eventBossKills = (g.eventBossKills||0) + bossCount;
+        }
         g.enemies     = g.enemies.filter(e=>e.hp>0);
         dead.forEach(e => log("✓ "+e.name, wasBoss?"#c8a882":"#4a9"));
       }
@@ -558,16 +575,31 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   };
 
   // ── Upgrade gear ──
+  // Rarity multiplies upgrade cost
+  const RARITY_COST_MULT = { common:1.0, rare:1.4, epic:2.0, legendary:3.0 };
+  const getItemRarity = (slot) => {
+    const id = (S.gear||{})[slot]; if (!id) return "common";
+    const item = (equipmentPool||[]).find(e=>e.id===id) || (gachaPool||[]).find(e=>e.id===id);
+    return item?.rarity || "common";
+  };
+  const scaledCost = (slot) => {
+    const lvl = gearLevels[slot]||1;
+    const base = (UPGRADE_COSTS[slot]||[])[lvl]; if (!base) return null;
+    const mult = RARITY_COST_MULT[getItemRarity(slot)] || 1.0;
+    const result = {};
+    for (const [k,v] of Object.entries(base)) result[k] = Math.max(1, Math.round(v * mult));
+    return result;
+  };
   const canUpgrade = (slot) => {
     const id = (S.gear||{})[slot]; if (!id) return false;
-    const lvl = gearLevels[slot]||1; if (lvl>=5) return false;
-    const cost = (UPGRADE_COSTS[slot]||[])[lvl]; if (!cost) return false;
+    const lvl = gearLevels[slot]||1; if (lvl>=30) return false;
+    const cost = scaledCost(slot); if (!cost) return false;
     return Object.entries(cost).every(([k,v])=>((S.materials||{})[k]||0)>=v);
   };
   const upgradeGear = (slot) => {
     if (!canUpgrade(slot)) return;
     const lvl  = gearLevels[slot]||1;
-    const cost = UPGRADE_COSTS[slot][lvl];
+    const cost = scaledCost(slot);
     setS(prev => {
       const mats = {...(prev.materials||{})};
       for (const [k,v] of Object.entries(cost)) mats[k]=Math.max(0,(mats[k]||0)-v);
@@ -951,8 +983,8 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
             const id   = (S.gear||{})[slot];
             const item = id ? ((equipmentPool||[]).find(e=>e.id===id)||(gachaPool||[]).find(e=>e.id===id)) : null;
             const lvl  = gearLevels[slot]||1;
-            const maxed= lvl>=5;
-            const cost = !maxed && UPGRADE_COSTS[slot] ? UPGRADE_COSTS[slot][lvl] : null;
+            const maxed= lvl>=30;
+            const cost = !maxed ? scaledCost(slot) : null;
             const canUp= canUpgrade(slot);
             const mats = S.materials||{};
             return (
@@ -960,10 +992,10 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                   <div>
                     <div style={{fontSize:9,color:item?"#888":"#333",letterSpacing:2}}>{SLOT_ICONS[slot]} {SLOT_LABELS[slot]}</div>
-                    {item  && <div style={{fontSize:8,color:RARITY_COLORS[item.rarity]||"#444",marginTop:2}}>{item.name}</div>}
+                    {item  && <div style={{fontSize:8,color:RARITY_COLORS[item.rarity]||"#444",marginTop:2}}>{item.name} <span style={{fontSize:7,opacity:0.6}}>× {({common:"×1.0",rare:"×1.4",epic:"×2.0",legendary:"×3.0"})[item.rarity]||"×1.0"}</span></div>}
                     {!item && <div style={{fontSize:8,color:"#2a2a2a"}}>— нет снаряжения —</div>}
                   </div>
-                  <div style={{fontSize:10,color:maxed?"#c8a882":accent,fontWeight:700}}>УР.{lvl}{maxed?" ★":""}</div>
+                  <div style={{fontSize:10,color:maxed?"#c8a882":accent,fontWeight:700}}>УР.{lvl}{maxed?" ★":""}/30</div>
                 </div>
                 {item && !maxed && cost && (
                   <>

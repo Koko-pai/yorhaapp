@@ -22,7 +22,7 @@ const RARITY_STAT_MULT = { common: 1, rare: 1.4, epic: 1.9, legendary: 2.8 };
 // ── Stat ranges per slot (min, max) ──────────────────────────────────────
 // Each item has 1 PRIMARY stat and 3 SECONDARY stats, rolled on item creation
 const STAT_RANGES = {
-  atk:     { min:3,  max:10, label:"АТК",       suffix:""  },
+  atk:     { min:2,  max:12, label:"АТК",       suffix:""  },
   hp:      { min:8,  max:25, label:"HP",         suffix:""  },
   crit:    { min:1,  max:6,  label:"КРИТ.ШНС",   suffix:"%" },
   critdmg: { min:4,  max:16, label:"КРИТ.УРОН",  suffix:"%" },
@@ -37,17 +37,32 @@ const SLOT_PRIMARY = {
   boots:  ["hp","crit"],
 };
 
-// All possible secondary stats per slot (weapon has none — ATK only)
+// All possible secondary stats per slot (weapon has 1 secondary — random from pool)
 const SLOT_SECONDARIES = {
-  weapon: [],            // weapon: only ATK, no secondaries
+  weapon: ["crit","critdmg","hp"],  // weapon: ATK primary + 1 random secondary
   chest:  ["crit","critdmg","atk","hp"],
   head:   ["atk","critdmg","crit","hp"],
   gloves: ["hp","crit","critdmg","atk"],
   boots:  ["atk","crit","critdmg","hp"],
 };
 
-// Primary stat multiplier (1.5–2x the normal range)
-const PRIMARY_MULT = { common:1.5, rare:2.0, epic:2.8, legendary:4.0 };
+// Stat bands: прямые диапазоны значений по редкости и типу (primary/secondary).
+// Гарантии: prim[X] > sec[X] при любом роле; prim[rare] > prim[common] и т.д.
+const STAT_BANDS = {
+  hp:      { common:{sec:[8,10],  prim:[12,14]}, rare:{sec:[13,15], prim:[17,19]}, epic:{sec:[17,19], prim:[21,23]}, legendary:{sec:[21,23], prim:[24,25]} },
+  atk:     { common:{sec:[2,3],   prim:[4,5]},   rare:{sec:[5,6],   prim:[7,8]},   epic:{sec:[7,8],   prim:[9,10]},  legendary:{sec:[9,10],  prim:[11,12]} },
+  crit:    { common:{sec:[1.0,1.8],prim:[2.0,2.8]}, rare:{sec:[2.0,2.8],prim:[3.0,3.8]}, epic:{sec:[3.0,3.8],prim:[4.0,4.8]}, legendary:{sec:[4.0,4.8],prim:[5.0,6.0]} },
+  critdmg: { common:{sec:[4,6],   prim:[7,9]},   rare:{sec:[7,9],   prim:[10,12]}, epic:{sec:[10,12], prim:[13,14]}, legendary:{sec:[12,14], prim:[15,16]} },
+};
+
+function rollStatInBand(statKey, rarity, roll, isPrimary) {
+  const band = (STAT_BANDS[statKey]?.[rarity] || STAT_BANDS[statKey].common)[isPrimary ? "prim" : "sec"];
+  const val = band[0] + roll * (band[1] - band[0]);
+  return (statKey === "crit" || statKey === "critdmg") ? Math.round(val * 10) / 10 : Math.round(val);
+}
+
+// Legacy — kept for exports that reference them externally
+const PRIMARY_MULT   = { common:1.5, rare:2.0, epic:2.8, legendary:4.0 };
 const SECONDARY_MULT = { common:1.0, rare:1.3, epic:1.7, legendary:2.4 };
 
 // Seeded random from item id (so stats are stable per item)
@@ -77,12 +92,12 @@ function rollItemStats(item) {
   const primIdx     = slot === "weapon" ? 0 : Math.floor(seededRand(rid, 0) * primOptions.length);
   const primaryStat = primOptions[primIdx];
 
-  // Pick secondary stats (weapon has none)
+  // Pick secondary stats (weapon: exactly 1; others: up to 3)
   const secPool = (SLOT_SECONDARIES[slot] || []).filter(s => s !== primaryStat);
   const secondaries = [];
   if (secPool.length > 0) {
     const used = new Set();
-    const count = Math.min(3, secPool.length);
+    const count = slot === "weapon" ? 1 : Math.min(3, secPool.length);
     for (let i=0; i<count; i++) {
       let tries=0, idx;
       do { idx = Math.floor(seededRand(rid, i*7+tries+1) * secPool.length); tries++; } while(used.has(idx) && tries<20);
@@ -91,28 +106,24 @@ function rollItemStats(item) {
     }
   }
 
-  // Roll values
-  const pm = PRIMARY_MULT[item.rarity]   || 1.5;
-  const sm = SECONDARY_MULT[item.rarity] || 1.0;
+  // Roll values — each rarity has its own non-overlapping band within the stat range
+  const rarity = item.rarity || "common";
   const stats = { atk:0, hp:0, crit:0, critdmg:0 };
 
-  const r = STAT_RANGES[primaryStat];
-  stats[primaryStat] = Math.round((r.min + seededRand(rid,10) * (r.max - r.min)) * pm * 10) / 10;
+  stats[primaryStat] = rollStatInBand(primaryStat, rarity, seededRand(rid, 10), true);
 
   secondaries.forEach((s, i) => {
-    const rs = STAT_RANGES[s];
-    const val = (rs.min + seededRand(rid, 20+i) * (rs.max - rs.min)) * sm;
-    stats[s] = (s==="crit"||s==="critdmg") ? Math.round(val*10)/10 : Math.round(val);
+    stats[s] = rollStatInBand(s, rarity, seededRand(rid, 20 + i), false);
   });
 
   return { primary: primaryStat, secondaries, stats };
 }
 
 function getStatScale(level) {
-  if (level >= 30) return 6.0;
-  if (level >= 20) return 3.2;
-  if (level >= 10) return 1.8;
-  return 1 + (level - 1) * 0.085;
+  if (level >= 30) return 4.0;
+  if (level >= 20) return 2.4;
+  if (level >= 10) return 1.6;
+  return 1 + (level - 1) * 0.075;
 }
 
 // Secondary stats grow much slower on upgrade (≈30% of primary growth per level)
@@ -148,37 +159,38 @@ const EQUIPMENT_SETS = {
 
 const EQUIPMENT_POOL = [
   // ── COMMON (без серии) ─────────────────────────────
-  { id:"cw1", slot:"weapon", set:null, rarity:"common", icon:"◇", level:1, name:"Полевой тесак",        desc:"Стандартный нож выживания. Не изящно — но надёжно.", lore:"Выдаётся каждому юниту перед десантированием. Большинство теряют их на второй день.", missionStyle:"базовая дисциплина", missionBonus:"intellect", missionBonusPct:5 },
-  { id:"cw2", slot:"weapon", set:null, rarity:"common", icon:"◇", level:1, name:"Обломок лезвия",       desc:"Треснутый клинок, найденный на руинах. Всё ещё режет.", lore:"Прежний владелец неизвестен. Зазубрина на рукоятке похожа на инициалы.", missionStyle:"адаптация", missionBonus:"creativity", missionBonusPct:5 },
-  { id:"cw3", slot:"weapon", set:null, rarity:"common", icon:"◇", level:1, name:"Боевой прут",          desc:"Металлический прут с обмоткой. Примитивно, эффективно.", lore:"Машины тоже пользовались такими. Что-то ироничное в этом есть.", missionStyle:"грубая сила", missionBonus:"intellect", missionBonusPct:5 },
-  { id:"cc1", slot:"chest",  set:null, rarity:"common", icon:"◇", level:1, name:"Полевой нагрудник",    desc:"Базовая защитная пластина. Выдаётся на складе перед вылетом.", lore:"Серийный номер выбит, но стёрт временем. Кто-то носил это до тебя." },
-  { id:"cc2", slot:"chest",  set:null, rarity:"common", icon:"◇", level:1, name:"Кевларовый жилет",     desc:"Трофейная защита с поверхности. Слегка помята, но цела.", lore:"Найдена в укрытии сопротивления. Снаружи — рисунок, назначение которого непонятно." },
-  { id:"cc3", slot:"chest",  set:null, rarity:"common", icon:"◇", level:1, name:"Пластины выживания",   desc:"Составная броня из подручных материалов. Каждая пластина — своя история.", lore:"Сделано руками, а не на заводе. Это придаёт ей особую ценность." },
-  { id:"ch1", slot:"head",   set:null, rarity:"common", icon:"◇", level:1, name:"Боевая маска",         desc:"Простая защитная маска. Скрывает лицо — и, возможно, эмоции.", lore:"На складе их было сотни. Осталась одна." },
-  { id:"ch2", slot:"head",   set:null, rarity:"common", icon:"◇", level:1, name:"Тактический козырёк",  desc:"Облегчённый щиток для глаз. Фильтрует свет, не мешает обзору.", lore:"Стандартная выдача для юнитов класса S. Применение — по усмотрению." },
-  { id:"ch3", slot:"head",   set:null, rarity:"common", icon:"◇", level:1, name:"Шлем рядового",        desc:"Базовый защитный шлем. Простой. Надёжный.", lore:"Таких шлемов было выпущено 40 000 единиц. Сколько дошло до боя — неизвестно." },
-  { id:"cg1", slot:"gloves", set:null, rarity:"common", icon:"◇", level:1, name:"Рабочие перчатки",     desc:"Плотная кожа, усиленные суставы. Для тех, кто работает руками.", lore:"Пахнут машинным маслом. Предыдущий владелец был механиком." },
-  { id:"cg2", slot:"gloves", set:null, rarity:"common", icon:"◇", level:1, name:"Полевые рукавицы",     desc:"Стандартные перчатки для операций на поверхности.", lore:"В левой рукавице — маленькая дыра. Кто-то зашил её вручную красной нитью." },
-  { id:"cb1", slot:"boots",  set:null, rarity:"common", icon:"◇", level:1, name:"Полевые сапоги",       desc:"Износостойкая обувь для долгих маршей. Грубо, но надёжно.", lore:"Прошли 300 км по руинам. Ни единого разрыва." },
-  { id:"cb2", slot:"boots",  set:null, rarity:"common", icon:"◇", level:1, name:"Лёгкие ботинки",       desc:"Облегчённые сапоги для скоростных операций. Почти бесшумные.", lore:"Разработаны для разведчиков. Подошва поглощает звук шагов." },
+  // statMod: небольшой множитель базовых статов (0.88–1.12), даёт предметам индивидуальность внутри редкости
+  { id:"cw1", slot:"weapon", set:null, rarity:"common", icon:"◇", level:1, statMod:0.92, name:"Полевой тесак",        desc:"Стандартный нож выживания. Не изящно — но надёжно.", lore:"Выдаётся каждому юниту перед десантированием. Большинство теряют их на второй день.", missionStyle:"базовая дисциплина", missionBonus:"intellect", missionBonusPct:5 },
+  { id:"cw2", slot:"weapon", set:null, rarity:"common", icon:"◇", level:1, statMod:1.00, name:"Обломок лезвия",       desc:"Треснутый клинок, найденный на руинах. Всё ещё режет.", lore:"Прежний владелец неизвестен. Зазубрина на рукоятке похожа на инициалы.", missionStyle:"адаптация", missionBonus:"creativity", missionBonusPct:5 },
+  { id:"cw3", slot:"weapon", set:null, rarity:"common", icon:"◇", level:1, statMod:1.10, name:"Боевой прут",          desc:"Металлический прут с обмоткой. Примитивно, эффективно.", lore:"Машины тоже пользовались такими. Что-то ироничное в этом есть.", missionStyle:"грубая сила", missionBonus:"intellect", missionBonusPct:5 },
+  { id:"cc1", slot:"chest",  set:null, rarity:"common", icon:"◇", level:1, statMod:0.90, name:"Полевой нагрудник",    desc:"Базовая защитная пластина. Выдаётся на складе перед вылетом.", lore:"Серийный номер выбит, но стёрт временем. Кто-то носил это до тебя." },
+  { id:"cc2", slot:"chest",  set:null, rarity:"common", icon:"◇", level:1, statMod:1.00, name:"Кевларовый жилет",     desc:"Трофейная защита с поверхности. Слегка помята, но цела.", lore:"Найдена в укрытии сопротивления. Снаружи — рисунок, назначение которого непонятно." },
+  { id:"cc3", slot:"chest",  set:null, rarity:"common", icon:"◇", level:1, statMod:1.08, name:"Пластины выживания",   desc:"Составная броня из подручных материалов. Каждая пластина — своя история.", lore:"Сделано руками, а не на заводе. Это придаёт ей особую ценность." },
+  { id:"ch1", slot:"head",   set:null, rarity:"common", icon:"◇", level:1, statMod:0.93, name:"Боевая маска",         desc:"Простая защитная маска. Скрывает лицо — и, возможно, эмоции.", lore:"На складе их было сотни. Осталась одна." },
+  { id:"ch2", slot:"head",   set:null, rarity:"common", icon:"◇", level:1, statMod:1.05, name:"Тактический козырёк",  desc:"Облегчённый щиток для глаз. Фильтрует свет, не мешает обзору.", lore:"Стандартная выдача для юнитов класса S. Применение — по усмотрению." },
+  { id:"ch3", slot:"head",   set:null, rarity:"common", icon:"◇", level:1, statMod:0.98, name:"Шлем рядового",        desc:"Базовый защитный шлем. Простой. Надёжный.", lore:"Таких шлемов было выпущено 40 000 единиц. Сколько дошло до боя — неизвестно." },
+  { id:"cg1", slot:"gloves", set:null, rarity:"common", icon:"◇", level:1, statMod:1.06, name:"Рабочие перчатки",     desc:"Плотная кожа, усиленные суставы. Для тех, кто работает руками.", lore:"Пахнут машинным маслом. Предыдущий владелец был механиком." },
+  { id:"cg2", slot:"gloves", set:null, rarity:"common", icon:"◇", level:1, statMod:0.94, name:"Полевые рукавицы",     desc:"Стандартные перчатки для операций на поверхности.", lore:"В левой рукавице — маленькая дыра. Кто-то зашил её вручную красной нитью." },
+  { id:"cb1", slot:"boots",  set:null, rarity:"common", icon:"◇", level:1, statMod:0.96, name:"Полевые сапоги",       desc:"Износостойкая обувь для долгих маршей. Грубо, но надёжно.", lore:"Прошли 300 км по руинам. Ни единого разрыва." },
+  { id:"cb2", slot:"boots",  set:null, rarity:"common", icon:"◇", level:1, statMod:1.04, name:"Лёгкие ботинки",       desc:"Облегчённые сапоги для скоростных операций. Почти бесшумные.", lore:"Разработаны для разведчиков. Подошва поглощает звук шагов." },
   // ── YoRHa RARE ─────────────────────────────────────
-  { id:"yw1", slot:"weapon", set:"yorha",   rarity:"rare",      icon:"◆", level:1, name:"Клинок YoRHa-VII",     desc:"Стандартный меч командного состава. Маркировка стёрта.",                    lore:"Найден на руинах Бункера. Серийный номер удалён — возможно, намеренно.", missionStyle:"дисциплина и фокус", missionBonus:"intellect", missionBonusPct:15 },
-  { id:"yc1", slot:"chest",  set:"yorha",   rarity:"rare",      icon:"◆", level:1, name:"Кожух YoRHa",          desc:"Бронепластины стандартного боевого снаряжения YoRHa.",                       lore:"Выдаётся при вводе в строй. Большинство андроидов не снимают его до финального протокола." },
-  { id:"yh1", slot:"head",   set:"yorha",   rarity:"rare",      icon:"◆", level:1, name:"Повязка YoRHa",        desc:"Тактическая повязка. Ограничивает восприятие — усиливает интуицию.",        lore:"Официально — для боевой концентрации. Неофициально — чтобы не видеть лишнего." },
-  { id:"yg1", slot:"gloves", set:"yorha",   rarity:"rare",      icon:"◆", level:1, name:"Перчатки YoRHa",       desc:"Усиленные перчатки с нейроинтерфейсом. Улучшают контроль Pod-системы.",    lore:"Разработаны для операций на поверхности. Чёрный цвет — не камуфляж, а символ." },
-  { id:"yb1", slot:"boots",  set:"yorha",   rarity:"rare",      icon:"◆", level:1, name:"Поножи YoRHa",         desc:"Боевые сапоги с усиленной подошвой. Бесшумный шаг на любом покрытии.",     lore:"Стандартная выдача. Единственный элемент, который A2 сохранила после дезертирства." },
+  { id:"yw1", slot:"weapon", set:"yorha",   rarity:"rare",      icon:"◆", level:1, statMod:1.08, name:"Клинок YoRHa-VII",     desc:"Стандартный меч командного состава. Маркировка стёрта.",                    lore:"Найден на руинах Бункера. Серийный номер удалён — возможно, намеренно.", missionStyle:"дисциплина и фокус", missionBonus:"intellect", missionBonusPct:15 },
+  { id:"yc1", slot:"chest",  set:"yorha",   rarity:"rare",      icon:"◆", level:1, statMod:1.00, name:"Кожух YoRHa",          desc:"Бронепластины стандартного боевого снаряжения YoRHa.",                       lore:"Выдаётся при вводе в строй. Большинство андроидов не снимают его до финального протокола." },
+  { id:"yh1", slot:"head",   set:"yorha",   rarity:"rare",      icon:"◆", level:1, statMod:0.94, name:"Повязка YoRHa",        desc:"Тактическая повязка. Ограничивает восприятие — усиливает интуицию.",        lore:"Официально — для боевой концентрации. Неофициально — чтобы не видеть лишнего." },
+  { id:"yg1", slot:"gloves", set:"yorha",   rarity:"rare",      icon:"◆", level:1, statMod:1.05, name:"Перчатки YoRHa",       desc:"Усиленные перчатки с нейроинтерфейсом. Улучшают контроль Pod-системы.",    lore:"Разработаны для операций на поверхности. Чёрный цвет — не камуфляж, а символ." },
+  { id:"yb1", slot:"boots",  set:"yorha",   rarity:"rare",      icon:"◆", level:1, statMod:0.97, name:"Поножи YoRHa",         desc:"Боевые сапоги с усиленной подошвой. Бесшумный шаг на любом покрытии.",     lore:"Стандартная выдача. Единственный элемент, который A2 сохранила после дезертирства." },
   // ── Machine EPIC ───────────────────────────────────
-  { id:"mw1", slot:"weapon", set:"machine", rarity:"epic",      icon:"▲", level:1, name:"Рычаг Адама",          desc:"Оружие машины-отступника. Форма нестабильна — сила непредсказуема.",         lore:"Адам создал его из обломков, изучая людей. Сила без понимания — опасная вещь.", missionStyle:"хаос и адаптация", missionBonus:"creativity", missionBonusPct:20 },
-  { id:"mc1", slot:"chest",  set:"machine", rarity:"epic",      icon:"▲", level:1, name:"Панцирь машин",        desc:"Броня с тяжёлого машинного юнита. Чужеродная, но функциональная.",           lore:"Машины не знают боли — их броня создавалась не для защиты, а для устрашения." },
-  { id:"mh1", slot:"head",   set:"machine", rarity:"epic",      icon:"▲", level:1, name:"Голова Эмиля",         desc:"Сфера с загадочным взглядом. Функция неизвестна. Иногда моргает.",           lore:"Эмиль потерял счёт своим копиям. Эта голова помнит то, о чём он давно забыл." },
-  { id:"mg1", slot:"gloves", set:"machine", rarity:"epic",      icon:"▲", level:1, name:"Манипуляторы машин",   desc:"Многосуставные перчатки машинного происхождения. Сила захвата — класс А.",  lore:"Машины использовали их, чтобы строить семьи. Эволюция — странная штука." },
-  { id:"mb1", slot:"boots",  set:"machine", rarity:"epic",      icon:"▲", level:1, name:"Шагоходы Pascal",      desc:"Ходовые модули деревенского юнита. Следы ведут в деревню машин.",           lore:"Pascal учил детей ходить на этих ногах. Теперь дети исчезли. Ноги остались." },
+  { id:"mw1", slot:"weapon", set:"machine", rarity:"epic",      icon:"▲", level:1, statMod:1.10, name:"Рычаг Адама",          desc:"Оружие машины-отступника. Форма нестабильна — сила непредсказуема.",         lore:"Адам создал его из обломков, изучая людей. Сила без понимания — опасная вещь.", missionStyle:"хаос и адаптация", missionBonus:"creativity", missionBonusPct:20 },
+  { id:"mc1", slot:"chest",  set:"machine", rarity:"epic",      icon:"▲", level:1, statMod:1.05, name:"Панцирь машин",        desc:"Броня с тяжёлого машинного юнита. Чужеродная, но функциональная.",           lore:"Машины не знают боли — их броня создавалась не для защиты, а для устрашения." },
+  { id:"mh1", slot:"head",   set:"machine", rarity:"epic",      icon:"▲", level:1, statMod:0.92, name:"Голова Эмиля",         desc:"Сфера с загадочным взглядом. Функция неизвестна. Иногда моргает.",           lore:"Эмиль потерял счёт своим копиям. Эта голова помнит то, о чём он давно забыл." },
+  { id:"mg1", slot:"gloves", set:"machine", rarity:"epic",      icon:"▲", level:1, statMod:1.00, name:"Манипуляторы машин",   desc:"Многосуставные перчатки машинного происхождения. Сила захвата — класс А.",  lore:"Машины использовали их, чтобы строить семьи. Эволюция — странная штука." },
+  { id:"mb1", slot:"boots",  set:"machine", rarity:"epic",      icon:"▲", level:1, statMod:0.95, name:"Шагоходы Pascal",      desc:"Ходовые модули деревенского юнита. Следы ведут в деревню машин.",           lore:"Pascal учил детей ходить на этих ногах. Теперь дети исчезли. Ноги остались." },
   // ── Ancient LEGENDARY ──────────────────────────────
-  { id:"aw1", slot:"weapon", set:"ancient", rarity:"legendary", icon:"★", level:1, name:"Осколок Древа Вёрльда", desc:"Фрагмент мирового оружия. Резонирует с памятью земли.",                    lore:"До войны с машинами существовало Древо Вёрльда. Это — его последний фрагмент.", missionStyle:"баланс и мудрость", missionBonus:"both", missionBonusPct:30 },
-  { id:"ac1", slot:"chest",  set:"ancient", rarity:"legendary", icon:"★", level:1, name:"Реликвийная мантия",   desc:"Одеяние неизвестного происхождения. Материал не поддаётся анализу.",        lore:"Датировка невозможна. Материал не существует в современных базах данных." },
-  { id:"ah1", slot:"head",   set:"ancient", rarity:"legendary", icon:"★", level:1, name:"Венец Роботов",        desc:"Корона из металла, которого больше нет. Излучает слабый сигнал.",           lore:"Найден в самом глубоком бункере. Рядом лежал дневник на языке, которого не существует." },
-  { id:"ag1", slot:"gloves", set:"ancient", rarity:"legendary", icon:"★", level:1, name:"Перчатки Создателя",   desc:"Прикасаясь к ним, чувствуешь чужую память. Чья — неизвестно.",             lore:"Создатели ушли. Эти перчатки — всё что осталось от тех, кто запустил всё это." },
-  { id:"ab1", slot:"boots",  set:"ancient", rarity:"legendary", icon:"★", level:1, name:"Сапоги Странника",     desc:"Прошли тысячи километров. Следы ведут в никуда.",                           lore:"Старый странник ходил в них по опустевшей земле. Куда он шёл — никто не знает." },
+  { id:"aw1", slot:"weapon", set:"ancient", rarity:"legendary", icon:"★", level:1, statMod:1.12, name:"Осколок Древа Вёрльда", desc:"Фрагмент мирового оружия. Резонирует с памятью земли.",                    lore:"До войны с машинами существовало Древо Вёрльда. Это — его последний фрагмент.", missionStyle:"баланс и мудрость", missionBonus:"both", missionBonusPct:30 },
+  { id:"ac1", slot:"chest",  set:"ancient", rarity:"legendary", icon:"★", level:1, statMod:1.06, name:"Реликвийная мантия",   desc:"Одеяние неизвестного происхождения. Материал не поддаётся анализу.",        lore:"Датировка невозможна. Материал не существует в современных базах данных." },
+  { id:"ah1", slot:"head",   set:"ancient", rarity:"legendary", icon:"★", level:1, statMod:0.96, name:"Венец Роботов",        desc:"Корона из металла, которого больше нет. Излучает слабый сигнал.",           lore:"Найден в самом глубоком бункере. Рядом лежал дневник на языке, которого не существует." },
+  { id:"ag1", slot:"gloves", set:"ancient", rarity:"legendary", icon:"★", level:1, statMod:1.08, name:"Перчатки Создателя",   desc:"Прикасаясь к ним, чувствуешь чужую память. Чья — неизвестно.",             lore:"Создатели ушли. Эти перчатки — всё что осталось от тех, кто запустил всё это." },
+  { id:"ab1", slot:"boots",  set:"ancient", rarity:"legendary", icon:"★", level:1, statMod:0.94, name:"Сапоги Странника",     desc:"Прошли тысячи километров. Следы ведут в никуда.",                           lore:"Старый странник ходил в них по опустевшей земле. Куда он шёл — никто не знает." },
 ];
 
 // Extended weapon styles (equipment weapons)
@@ -389,12 +401,13 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                                 <span style={{ color:rc }}>{item.rarity?.toUpperCase()}</span>
                                 {setDef && <span style={{ color:setDef.color }}>· {setDef.name}</span>}
                                 {(() => {
+                                  const lvl = (S.gearLevels||{})[slot] || 1;
                                   const r = rollItemStats(item);
-                                  const cs = calcStats(item);
+                                  const cs = calcStats({ ...item, level: lvl });
                                   const pv = cs[r.primary];
                                   const pr = STAT_RANGES[r.primary];
                                   if (!pr) return null;
-                                  return <span style={{ color:"#888" }}>· {pr.label} {pv}{pr.suffix}</span>;
+                                  return <span style={{ color:"#888" }}>· {pr.label} {pv}{pr.suffix} <span style={{color:"#444"}}>Lv.{lvl}</span></span>;
                                 })()}
                               </div>
                             </div>
@@ -495,7 +508,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
                         {isEquipped ? <div style={{ fontSize:8, color:rc, letterSpacing:1 }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#444" }}>НАДЕТЬ</div>}
-                        <div style={{ fontSize:7, color:"#2a2a2a", marginTop:2 }}>Lv.1</div>
+                        <div style={{ fontSize:7, color:"#555", marginTop:2 }}>Lv.{(S.gearLevels||{})[slot] || 1}</div>
                       </div>
                     </div>
                   );
@@ -600,8 +613,9 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
               </div>
             )}
             {(() => {
-              const rolled  = rollItemStats(selectedItem);
-              const cs      = calcStats(selectedItem);
+              const itemWithSlot = { ...selectedItem, slot: selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest") };
+              const rolled  = rollItemStats(itemWithSlot);
+              const cs      = calcStats(itemWithSlot);
               const allStats = [
                 { key:"atk",     val: cs.atk,     label:"АТК",       suffix:"" },
                 { key:"hp",      val: cs.hp,       label:"HP",         suffix:"" },
@@ -637,15 +651,15 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
             <div style={{ padding:"8px 12px", border:"1px solid #111" }}>
               <div style={{ fontSize:7, letterSpacing:2, color:"#444", marginBottom:6 }}>УЛУЧШЕНИЕ</div>
               {(() => {
-                const slot = selectedItem.slot;
+              const slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
                 const lvl  = (S.gearLevels||{})[slot] || 1;
-                const maxed = lvl >= 5;
+                const maxed = lvl >= 30;
                 return (
                   <>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                      <div style={{ fontSize:8, color: maxed ? "#c8a882" : "#888" }}>Уровень: {lvl}/5{maxed?" ★":""}</div>
+                      <div style={{ fontSize:8, color: maxed ? "#c8a882" : "#888" }}>Уровень: {lvl}/30{maxed?" ★":""}</div>
                       <div style={{ flex:1, height:2, background:"#111" }}>
-                        <div style={{ height:"100%", width:((lvl-1)/4*100)+"%", background: maxed?"#c8a882":accent, transition:"width 0.4s" }}/>
+                        <div style={{ height:"100%", width:((lvl-1)/29*100)+"%", background: maxed?"#c8a882":accent, transition:"width 0.4s" }}/>
                       </div>
                     </div>
                     {maxed
