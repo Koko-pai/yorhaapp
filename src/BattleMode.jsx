@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getCharacterImg, getCharacterAbilities, computeCharacterBattleBase, DEFAULT_CHARACTER_ID } from "./characters.js";
 
 // ── Helpers ──
 function getStatScale(level) {
@@ -102,24 +103,9 @@ const BOSSES = [
   { id:"red_girl",  name:"КРАСНАЯ ДЕВОЧКА", icon:"★", hp:520, atk:38, isBoss:true },
 ];
 
-// Abilities with clear, tested logic
-export const ABILITIES = [
-  {
-    id:"pod", name:"POD FIRE", icon:"◈",
-    desc:"Урон всем врагам на экране (60% ATK)",
-    cooldown:8000, color:"#44aaff",
-  },
-  {
-    id:"evade", name:"EVADE", icon:"▷",
-    desc:"Рывок: 1.5с неуязвимость + 120% ATK по ближайшему",
-    cooldown:5000, color:"#c8a882",
-  },
-  {
-    id:"blade", name:"BLADE STORM", icon:"⚔",
-    desc:"200% ATK по цели. Гарантированный крит если HP < 30%",
-    cooldown:12000, color:"#cc4444",
-  },
-];
+// Способности экспортируются для обратной совместимости с App.jsx
+// Берутся из characters.js для активного персонажа
+export const ABILITIES = getCharacterAbilities(DEFAULT_CHARACTER_ID);
 
 const BATTLE_MISSIONS_POOL = [
   { id:"bm1",  title:"ВЫЖИТЬ В 5 ВОЛНАХ",         desc:"Продержитесь не менее 5 волн",           req:{waves:5},       mem:30, frags:2 },
@@ -167,11 +153,10 @@ export function getWaveDrops(wave, isBossWave) {
   return d;
 }
 
-// Reduced base stats: HP 30+fw*6, ATK 4+fw*1
-function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool) {
-  const BASE_HP  = 30 + (fw||1) * 6;
-  const BASE_ATK = 4  + (fw||1) * 1;
-  let hp=BASE_HP, atk=BASE_ATK, crit=5, critdmg=40;
+// Базовые стат берутся из characters.js — characterId пробрасывается из App
+function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool, characterId) {
+  const base = computeCharacterBattleBase(characterId || DEFAULT_CHARACTER_ID, fw);
+  let hp=base.baseHp, atk=base.baseAtk, crit=base.baseCrit, critdmg=base.baseCritdmg;
   for (const slot of EQUIP_SLOTS) {
     const id = (gear||{})[slot];
     if (!id) continue;
@@ -259,9 +244,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const gearLevels     = S.gearLevels || {};
   const unitStats      = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, gearLevels, equipmentPool||[], gachaPool||[]);
 
-  const formImg = fid==="reborn"   ? "https://i.ibb.co/4wPkwGsJ/nr-10h-reborn-warden-Photoroom.png"
-                : fid==="abstract" ? "https://i.ibb.co/kgb7fW9d/nr-10h-abstract-savior-Photoroom.png"
-                : "https://i.ibb.co/DgMDtFFk/nr-10h-sentinel-savior-Photoroom.png";
+  const formImg = getCharacterImg(DEFAULT_CHARACTER_ID, fid);
 
   const log = (msg, color) =>
     setBattleLog(p => [{ msg, color:color||"#888", id:Date.now()+Math.random() }, ...p].slice(0,25));

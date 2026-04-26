@@ -4,22 +4,15 @@ import LOGIC_BANK from "./LOGIC_MISSIONS.js";
 import { getMissionHint } from "./MISSION_HINTS.js";
 import BattleTab, { getDailyBattleMissions, getWaveDrops, MATERIALS, UPGRADE_COSTS, ABILITIES } from "./BattleMode.jsx";
 import EquipmentTab, { EQUIP_SLOTS, SLOT_LABELS, SLOT_ICONS, RARITY_STAT_MULT, STAT_RANGES, EQUIPMENT_SETS, EQUIPMENT_POOL, EQUIPMENT_WEAPON_STYLES, getStatScale, calcStats, rollItemStats, getEquippedItems, getSetBonuses, getSetMemMultiplier } from "./EquipmentSystem.jsx";
+import { CHARACTER_10H, getCharacterImg, getCharacterForm, getCharacterDialogue } from "./characters.js";
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════
 
-const IMGS = {
-  sentinel: "https://i.ibb.co/DgMDtFFk/nr-10h-sentinel-savior-Photoroom.png",
-  abstract: "https://i.ibb.co/kgb7fW9d/nr-10h-abstract-savior-Photoroom.png",
-  reborn:   "https://i.ibb.co/4wPkwGsJ/nr-10h-reborn-warden-Photoroom.png",
-};
-
-const FORMS = {
-  sentinel: { name: "SENTINEL SAVIOR", unlockFw: 1,  accent: "#8888cc", desc: "Базовая боевая форма YoRHa No.10 Type H." },
-  abstract: { name: "ABSTRACT SAVIOR", unlockFw: 5,  accent: "#44aaff", desc: "Улучшенная форма. Длинное пальто, расширенный арсенал." },
-  reborn:   { name: "REBORN WARDEN",   unlockFw: 9,  accent: "#ffe0a0", desc: "Финальная форма. Белое облачение, реликвийное оружие." },
-};
+// Алиасы для удобства — данные живут в characters.js
+const IMGS  = CHARACTER_10H.imgs;
+const FORMS = CHARACTER_10H.forms;
 
 const XP_TABLE = [0, 100, 250, 900, 1400, 2000, 2800, 3800, 5000, 6400, 8000];
 
@@ -569,106 +562,13 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
 
 
 
-// ── Dialogue data ─────────────────────────────────────────────────────────
-const DIALOGUES = {
-  login: [
-    "...Снова ты. Хорошо. Я уже думала, что сервер придётся охранять в одиночестве.",
-    "А, пришёл. Я как раз собиралась вздремнуть. Ладно, давай займёмся делами.",
-    "Подключение восстановлено. ...Я не скучала. Просто здесь тихо без тебя.",
-    "Ты снова здесь. Значит, операция продолжается. Хорошо.",
-    "...Glory to mankind. Хотя кому я это говорю.",
-  ],
-  missionComplete: {
-    "НИЗКАЯ": [
-      "Выполнено. Я и не сомневалась. Ну, почти.",
-      "Готово? Уже? Может, стоило взять что-то посложнее...",
-      "Хм. Даже я бы справилась быстрее. Но результат засчитан.",
-      "Данные получены. Продолжай в том же духе.",
-    ],
-    "СРЕДНЯЯ": [
-      "...Неплохо. Я бы сказала больше, но не хочу тебя баловать.",
-      "Выполнено. Видишь? Говорила же — справишься.",
-      "Операция завершена. Командование довольно. Ну и я тоже, немного.",
-      "Отчёт принят. Продолжай — мне нравится наблюдать за твоим прогрессом.",
-    ],
-    "ВЫСОКАЯ": [
-      "...Это было непросто. Даже я признаю. Хорошая работа.",
-      "Выполнено. Я... немного волновалась. Только немного.",
-      "Сложная операция завершена. Ты меня удивляешь — и это непросто сделать.",
-      "Данные записаны. Такое не забывается. Спасибо.",
-    ],
-  },
-  missionEvent: [
-    "⚠ Внимание! Экстренный сигнал с поверхности. Это срочно — действуй немедленно.",
-    "Это не плановая операция. Будь осторожен — я буду следить за твоими данными.",
-    "Экстренная директива. Двойная награда — и двойная ответственность. Не подведи.",
-  ],
-  levelUp: [
-    "Прошивка обновлена до v{fw}.0. ...Ты становишься лучше. Это... радует.",
-    "v{fw}.0. Новая версия. Интересно, что изменилось внутри?",
-    "Обновление завершено. v{fw}.0. Я помню каждую твою версию, знаешь.",
-    "v{fw}.0. Ещё один шаг. Продолжай — мне любопытно, куда ты придёшь.",
-  ],
-  formUnlock: {
-    abstract: [
-      "Abstract Savior... Новая форма. Ты изменился. Это хорошо, наверное.",
-      "Смотрю на тебя и думаю — интересно, какой будет следующая версия.",
-    ],
-    reborn: [
-      "Reborn Warden. Финальная форма. ...Красиво. Ты прошёл долгий путь.",
-      "Белое облачение. Как будто всё началось заново. Может, так и есть.",
-    ],
-  },
-  gacha: [
-    "Архив разблокирован. Посмотрим, что скрывалось внутри...",
-    "Данные извлечены. Хм. Интересно.",
-    "Новая запись в архиве. Береги её.",
-    "...Я тоже хотела бы знать, что там дальше в архиве.",
-  ],
-  dailyReward: [
-    "Снова новый день. Данные зафиксированы. Держи награду — ты её заслужил.",
-    "Ежедневный отчёт принят. Хорошо, что ты продолжаешь приходить.",
-    "День {day} из 7. ...Не бросай на полпути, ладно?",
-    "Новый день. Новые директивы. Я здесь — как всегда.",
-  ],
-  idle: [
-    "...Тихо. Слишком тихо.",
-    "Данные сервера стабильны. Угроз не обнаружено. Скучновато.",
-    "Интересно, что думают машины прямо сейчас...",
-    "Pod 006 говорит, что я слишком много думаю. Может, он прав.",
-  ],
-  equipItem: [
-    "Чип установлен. Система адаптируется.",
-    "Модуль интегрирован. Параметры обновлены.",
-    "...Это тебе идёт. Не то чтобы я обращаю внимание.",
-  ],
-  setBonus2: [
-    "Два элемента серии синхронизированы. Слабый резонанс зафиксирован.",
-    "Частичная синхронизация. Протокол активирован на минимуме.",
-  ],
-  setBonus4: [
-    "Четыре элемента серии объединены. Полный протокол активирован!",
-    "Резонанс максимальный. Командование зафиксировало аномальный сигнал.",
-  ],
-};
-
+// Диалоги и getRandom — делегируем в characters.js
 function getRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function getDialogue(type, params) {
-  let lines;
-  if (type === "missionComplete") {
-    lines = DIALOGUES.missionComplete[params?.threat] || DIALOGUES.missionComplete["СРЕДНЯЯ"];
-  } else if (type === "formUnlock") {
-    lines = DIALOGUES.formUnlock[params?.form] || DIALOGUES.formUnlock.abstract;
-  } else {
-    lines = DIALOGUES[type] || [];
-  }
-  let line = getRandom(lines) || "";
-  if (params?.fw)  line = line.replace("{fw}", params.fw);
-  if (params?.day) line = line.replace("{day}", params.day);
-  return line;
+  return getCharacterDialogue(CHARACTER_10H.id, type, params);
 }
 
 // ── Dialogue popup component ───────────────────────────────────────────────
