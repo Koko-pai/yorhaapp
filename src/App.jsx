@@ -1746,7 +1746,7 @@ export default function App() {
       const isEvent = picked.isEvent || false;
       const isLogic = picked.isLogic || false;
       const lifetime = missionLifetime(picked.threat, isEvent, isLogic);
-      const newM = { ...picked, id: missionId, isEvent, isLogic, expiresAt: rerollNow + lifetime, createdAt: rerollNow };
+      const newM = { ...picked, id: missionId, isEvent, isLogic, expiresAt: mission.expiresAt, createdAt: mission.createdAt };
       const newCount2 = newCount + 1;
       const newLetter = {
         id: "l" + missionId + "_r" + rerollNow,
