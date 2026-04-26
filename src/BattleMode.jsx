@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { getCharacterImg, getCharacterAbilities, computeCharacterBattleBase, DEFAULT_CHARACTER_ID } from "./characters.js";
+import { getCharacterImg, getCharacterAbilities, computeCharacterBattleBase, getInitialCDs, getCharacterDialogue, DEFAULT_CHARACTER_ID } from "./characters.js";
 
 // ── Helpers ──
 function getStatScale(level) {
@@ -153,9 +153,9 @@ export function getWaveDrops(wave, isBossWave) {
   return d;
 }
 
-// Базовые стат берутся из characters.js — characterId пробрасывается из App
-function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool, characterId) {
-  const base = computeCharacterBattleBase(characterId || DEFAULT_CHARACTER_ID, fw);
+// Базовые стат берутся из characters.js — characterId и unlockedForms пробрасываются из App
+function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool, characterId, unlockedForms) {
+  const base = computeCharacterBattleBase(characterId || DEFAULT_CHARACTER_ID, fw, unlockedForms);
   let hp=base.baseHp, atk=base.baseAtk, crit=base.baseCrit, critdmg=base.baseCritdmg;
   for (const slot of EQUIP_SLOTS) {
     const id = (gear||{})[slot];
@@ -188,7 +188,7 @@ function spawnWave(wave, isBoss) {
 // BATTLE TAB COMPONENT
 // ═══════════════════════════════════════════════════════
 
-export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool, gachaPool, onRegisterPause }) {
+export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool, gachaPool, onRegisterPause, onShowDialogue }) {
   const TICK     = 100;
   const ATK_CD   = 1000; // unit auto-attack interval ms
   const ENEMY_CD = 1200; // enemy attack interval ms
@@ -213,7 +213,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const [displayHP, setDisplayHP]           = useState(100);
   const [displayMaxHP, setDisplayMaxHP]     = useState(100);
   const [displayEnemies, setDisplayEnemies] = useState([]);
-  const [displayCDs, setDisplayCDs]         = useState({ pod:0, evade:0, blade:0 });
+  const [displayCDs, setDisplayCDs]         = useState(() => getInitialCDs(DEFAULT_CHARACTER_ID));
   const [wave, setWave]                     = useState(0);
   const [kills, setKills]                   = useState(0);
   const [battleLog, setBattleLog]           = useState([]);
@@ -223,6 +223,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const [unitAnim, setUnitAnim]             = useState("idle"); // idle|attack|skill|hit|evade
   const [enemyFlash, setEnemyFlash]         = useState({});    // uid -> true when attacking
   const [eventBoss, setEventBoss]           = useState(false);
+  const [abilityFx, setAbilityFx]           = useState(null);  // null | { type, id }
 
   // ── All game state lives in ref (no stale closures) ──
   const G = useRef({
@@ -231,9 +232,9 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     sessionDrops:{}, podFires:0, evadeCount:0, eventBossKills:0,
     hitThisWave:false, eventBoss:false,
     perfectWaveAchieved:false,
-    cds:{ pod:0, evade:0, blade:0 },
+    cds: getInitialCDs(DEFAULT_CHARACTER_ID),
     invincUntil:0, atkTimer:0,
-    memEarned:0,
+    memEarned:0, _lowHpWarned:false,
   });
   const tickRef = useRef(null);
   const FF = "'Courier New',monospace";
@@ -242,7 +243,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const battleMissions = getDailyBattleMissions(today);
   const doneMissions   = S.battleMissionsDate === today ? (S.battleMissionsDone||[]) : [];
   const gearLevels     = S.gearLevels || {};
-  const unitStats      = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, gearLevels, equipmentPool||[], gachaPool||[]);
+  const unitStats      = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, gearLevels, equipmentPool||[], gachaPool||[], DEFAULT_CHARACTER_ID, S.unlocked||["sentinel"]);
 
   const formImg = getCharacterImg(DEFAULT_CHARACTER_ID, fid);
 
@@ -426,10 +427,20 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
           const bossCount = dead.filter(e=>e.isBoss).length;
           g.bossKills += bossCount;
           if (g.eventBoss) g.eventBossKills = (g.eventBossKills||0) + bossCount;
+          const bossQuip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "battleBossKill");
+          if (bossQuip && onShowDialogue) onShowDialogue(bossQuip);
         }
         g.enemies     = g.enemies.filter(e=>e.hp>0);
         dead.forEach(e => log("✓ "+e.name, wasBoss?"#c8a882":"#4a9"));
       }
+
+      // ── Low HP warning (once per fall below 30%) ──
+      if (g.unitHP > 0 && g.unitHP / g.unitMaxHP < 0.30 && !g._lowHpWarned) {
+        g._lowHpWarned = true;
+        const lowQuip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "battleLowHP");
+        if (lowQuip && onShowDialogue) onShowDialogue(lowQuip);
+      }
+      if (g.unitHP / g.unitMaxHP >= 0.50) g._lowHpWarned = false;
 
       // ── Sync display ──
       setDisplayHP(g.unitHP);
@@ -443,6 +454,8 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         g.phase = "dead";
         setPhase("dead");
         setSessionDrops({...g.sessionDrops});
+        const deathQuip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "battleDead", { n: "?" });
+        if (deathQuip && onShowDialogue) onShowDialogue(deathQuip);
         log("◆ ЮНИТ УНИЧТОЖЕН — волна "+g.wave, "#c44");
         saveRewards();
         return;
@@ -451,7 +464,6 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       // ── Wave cleared ──
       if (g.enemies.length === 0) {
         clearInterval(tickRef.current);
-        // perfectWave: if no damage taken this wave, mark it achieved
         if (!g.hitThisWave) g.perfectWaveAchieved = true;
         g.phase = "waveResult";
         setPhase("waveResult");
@@ -461,7 +473,8 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         setWaveDrops({...drops});
         setSessionDrops({...g.sessionDrops});
         setWave(g.wave);
-        // Check missions mid-battle so progress is saved even if player quits
+        const waveQuip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "battleWaveClear");
+        if (waveQuip && onShowDialogue) onShowDialogue(waveQuip);
         checkMissions(g);
       }
     }, TICK);
@@ -477,15 +490,17 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     g.enemies=[]; g.wave=0; g.kills=0; g.bossKills=0;
     g.sessionDrops={}; g.podFires=0; g.evadeCount=0;
     g.hitThisWave=false; g.eventBoss=false;
-    g.cds={pod:0,evade:0,blade:0}; g.invincUntil=0; g.atkTimer=0;
-    g.memEarned=0; g.perfectWaveAchieved=false; g.phase="fighting";
+    g.cds=getInitialCDs(DEFAULT_CHARACTER_ID); g.invincUntil=0; g.atkTimer=0;
+    g.memEarned=0; g.perfectWaveAchieved=false; g.phase="fighting"; g._lowHpWarned=false;
     setDisplayHP(hp); setDisplayMaxHP(hp);
     setWave(0); setKills(0); setBattleLog([]);
     setSessionDrops({}); setWaveDrops(null); setAnimHits([]);
     setEventBoss(false); setEnemyFlash({});
-    setDisplayEnemies([]); setDisplayCDs({pod:0,evade:0,blade:0});
+    setDisplayEnemies([]); setDisplayCDs(getInitialCDs(DEFAULT_CHARACTER_ID));
     setUnitAnim("idle");
     setPhase("fighting");
+    const startQuip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "battleStart");
+    if (startQuip && onShowDialogue) setTimeout(()=>onShowDialogue(startQuip), 200);
     launchWave(1);
     startTick();
   };
@@ -501,55 +516,58 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
 
   useEffect(() => () => clearInterval(tickRef.current), []);
 
+  // ── Ability visual effect helper ──
+  const triggerFx = (type) => {
+    setAbilityFx({ type, id: Date.now() });
+    setTimeout(() => setAbilityFx(null), 900);
+  };
+
   // ── Abilities ──
   const useAbility = (id) => {
-    const g = G.current;
+    const g  = G.current;
     if (g.cds[id] > 0 || g.phase !== "fighting") return;
     const ab = ABILITIES.find(a=>a.id===id);
     if (!ab) return;
+    const fs = g.frozenStats || unitStats;
 
-    if (id === "pod") {
-      // POD FIRE: hit ALL enemies for 60% ATK
-      const dmg = Math.max(1, Math.floor((G.current.frozenStats||unitStats).atk * 0.6));
+    if (id === "pod_grid") {
+      const dmg = Math.max(1, Math.floor(fs.atk * 0.55));
       let hit = 0;
-      for (const e of g.enemies) {
-        e.hp = Math.max(0, e.hp - dmg);
-        hit++;
-      }
+      for (const e of g.enemies) { e.hp = Math.max(0, e.hp - dmg); hit++; }
       flashUnit("skill");
-      // Spawn hit numbers on each visible enemy
+      triggerFx("pod_grid");
       g.enemies.forEach(e => spawnHit(dmg, false, e.x, 10+Math.random()*20, false));
       g.podFires++;
-      log("◈ POD FIRE — "+dmg+" × "+hit+" целей", "#44aaff");
+      const quip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "abilityPodGrid");
+      if (quip && onShowDialogue) onShowDialogue(quip);
+      log("◈ POD GRID — "+dmg+" × "+hit+" целей", "#8888cc");
 
-    } else if (id === "evade") {
-      // EVADE: become invincible 1.5s, dash-attack nearest enemy for 120% ATK
-      g.invincUntil = Date.now() + 1500;
-      flashUnit("evade");
-      if (g.enemies.length > 0) {
-        const tgt = g.enemies[0];
-        const dmg = Math.max(1, Math.floor((G.current.frozenStats||unitStats).atk * 1.2));
-        tgt.hp    = Math.max(0, tgt.hp - dmg);
-        spawnHit(dmg, false, tgt.x, 15+Math.random()*20, false);
-        log("▷ EVADE — рывок +"+dmg+" · неуязвимость 1.5с", "#c8a882");
-      } else {
-        log("▷ EVADE — неуязвимость 1.5с", "#c8a882");
-      }
-      g.evadeCount++;
+    } else if (id === "repair") {
+      const heal = Math.max(1, Math.floor(g.unitMaxHP * 0.22));
+      g.unitHP   = Math.min(g.unitMaxHP, g.unitHP + heal);
+      flashUnit("skill");
+      triggerFx("repair");
+      spawnHit(heal, false, 8, 30+Math.random()*15, true);
+      const quip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "abilityRepair");
+      if (quip && onShowDialogue) onShowDialogue(quip);
+      log("♦ REPAIR PROTOCOL — +"+heal+" HP", "#44bb88");
 
-    } else if (id === "blade") {
-      // BLADE STORM: 200% ATK on first enemy, guaranteed crit if target HP < 30%
-      if (g.enemies.length === 0) { log("⚔ Нет целей", "#555"); g.cds[id]=ab.cooldown; setDisplayCDs({...g.cds}); return; }
-      const tgt    = g.enemies[0];
-      const isCrit = (tgt.hp / tgt.maxHp) < 0.3;
-      const _fs    = G.current.frozenStats||unitStats;
-      let dmg      = Math.floor(_fs.atk * 2.0);
-      if (isCrit) dmg = Math.floor(dmg * (1 + _fs.critdmg/100));
+    } else if (id === "data_corruption") {
+      if (g.enemies.length === 0) { log("▣ Нет целей", "#555"); g.cds[id]=ab.cooldown; setDisplayCDs({...g.cds}); return; }
+      const selfDmg = Math.max(1, Math.floor(g.unitMaxHP * 0.08));
+      g.unitHP      = Math.max(1, g.unitHP - selfDmg);
+      const tgt     = g.enemies[0];
+      const isCrit  = (g.unitHP / g.unitMaxHP) < 0.4;
+      let dmg       = Math.floor(fs.atk * 2.8);
+      if (isCrit) dmg = Math.floor(dmg * (1 + fs.critdmg / 100));
       dmg = Math.max(1, dmg);
       tgt.hp = Math.max(0, tgt.hp - dmg);
       flashUnit("skill");
+      triggerFx("data_corruption");
       spawnHit(dmg, isCrit, tgt.x, 10+Math.random()*25, false);
-      log("⚔ BLADE STORM — "+(isCrit?"[★КРИТ] ":"")+dmg+" → "+tgt.name, "#cc4444");
+      const quip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "abilityCorruption");
+      if (quip && onShowDialogue) onShowDialogue(quip);
+      log("▣ DATA CORRUPTION — "+(isCrit?"[★КРИТ] ":"")+dmg+" → "+tgt.name+" (цена: -"+selfDmg+" HP)", "#aa44cc");
     }
 
     g.cds[id] = ab.cooldown;
@@ -615,7 +633,17 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         "@keyframes walkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}" +
         "@keyframes enemyAtk{0%{transform:translateX(0)}30%{transform:translateX(-10px)}60%{transform:translateX(4px)}100%{transform:translateX(0)}}" +
         "@keyframes invincFlash{0%,100%{opacity:1}50%{opacity:0.3}}" +
-        "@keyframes podBeam{0%{opacity:0.8;transform:scaleX(0)}100%{opacity:0;transform:scaleX(1)}}"
+        "@keyframes podBeam{0%{opacity:0.8;transform:scaleX(0)}100%{opacity:0;transform:scaleX(1)}}" +
+        // POD GRID — горизонтальные лазерные лучи расходятся от юнита
+        "@keyframes podGridBeam{0%{opacity:0.9;width:0;left:18%}100%{opacity:0;width:82%;left:18%}}" +
+        "@keyframes podGridFade{0%{opacity:0.8;transform:scale(0.7)}100%{opacity:0;transform:scale(1.4)}}" +
+        // REPAIR — пульс зелёного кольца вокруг юнита
+        "@keyframes repairRing{0%{opacity:0.9;transform:translate(-50%,-50%) scale(0.4)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}" +
+        "@keyframes repairParticle{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-28px) scale(0.6)}}" +
+        // DATA CORRUPTION — фиолетовые статические волны от юнита к цели
+        "@keyframes corruptFlash{0%{opacity:0}20%{opacity:1}80%{opacity:0.6}100%{opacity:0}}" +
+        "@keyframes corruptGlitch{0%{transform:translateX(0) skewX(0)}15%{transform:translateX(-4px) skewX(-3deg)}30%{transform:translateX(3px) skewX(2deg)}50%{transform:translateX(-2px) skewX(0)}100%{transform:translateX(0) skewX(0)}}" +
+        "@keyframes corruptRay{0%{opacity:0.8;width:0}100%{opacity:0;width:75%}}"
       }</style>
 
       {/* Top bar */}
@@ -776,14 +804,14 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
             top:Math.max(4,h.y)+"%",
             fontSize:h.isCrit?14:9,
             fontWeight:700,
-            color: h.isCrit ? "#c44" : "rgba(0,0,0,0.5)",
+            color: h.isHeal ? "#44bb88" : h.isCrit ? "#c44" : "rgba(0,0,0,0.5)",
             fontFamily:FF,
             animation: h.isCrit ? "floatCrit 0.8s ease forwards" : "floatDmg 0.65s ease forwards",
             pointerEvents:"none",
             zIndex:5,
             whiteSpace:"nowrap",
           }}>
-            {h.isCrit ? "★"+h.dmg : h.dmg}
+            {h.isHeal ? "♦+"+h.dmg : h.isCrit ? "★"+h.dmg : h.dmg}
           </div>
         ))}
 
@@ -796,6 +824,113 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
             <div style={{height:4,background:"rgba(0,0,0,0.12)",borderRadius:2,overflow:"hidden"}}>
               <div style={{height:"100%",width:Math.max(0,displayHP/displayMaxHP*100)+"%",background:displayHP<displayMaxHP*0.3?"#c44":displayHP<displayMaxHP*0.6?"#ca7":"#4a9",transition:"width 0.12s"}}/>
             </div>
+          </div>
+        )}
+
+        {/* ── ABILITY FX OVERLAY ── */}
+        {abilityFx && abilityFx.type === "pod_grid" && (
+          <div key={abilityFx.id} style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:8,overflow:"hidden"}}>
+            {/* 3 horizontal laser beams at different heights */}
+            {[28,48,65].map((top,i) => (
+              <div key={i} style={{
+                position:"absolute", top:top+"%", left:"18%",
+                height: i===1 ? 2 : 1,
+                background: i===1
+                  ? "linear-gradient(90deg,#8888cc,#aaaaff88,transparent)"
+                  : "linear-gradient(90deg,#8888cc88,#aaaaff44,transparent)",
+                animation:`podGridBeam ${0.35 + i*0.07}s ${i*0.06}s ease-out forwards`,
+                boxShadow: i===1 ? "0 0 6px #8888cc" : "none",
+              }}/>
+            ))}
+            {/* Pod flash circle at unit position */}
+            <div style={{
+              position:"absolute", left:"18%", top:"50%",
+              width:20, height:20, marginLeft:-10, marginTop:-10,
+              borderRadius:"50%",
+              background:"radial-gradient(circle,#aaaaff88 0%,transparent 70%)",
+              animation:"podGridFade 0.5s ease-out forwards",
+            }}/>
+            {/* Small ◈ icon burst */}
+            <div style={{
+              position:"absolute", left:"17%", top:"38%",
+              fontSize:10, color:"#8888cc",
+              animation:"podGridFade 0.6s ease-out forwards",
+              fontFamily:FF,
+            }}>◈</div>
+          </div>
+        )}
+
+        {abilityFx && abilityFx.type === "repair" && (
+          <div key={abilityFx.id} style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:8,overflow:"hidden"}}>
+            {/* Expanding green ring around unit */}
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{
+                position:"absolute", left:"18%", top:"42%",
+                width:40, height:40,
+                border:"1px solid #44bb88",
+                borderRadius:"50%",
+                opacity:0,
+                animation:`repairRing 0.7s ${i*0.18}s ease-out forwards`,
+                boxShadow:"0 0 8px #44bb8866",
+              }}/>
+            ))}
+            {/* Rising ♦ particles */}
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{
+                position:"absolute",
+                left:(12 + i*5)+"%", top:(50 + (i%2)*15)+"%",
+                fontSize: i%2===0 ? 9 : 7,
+                color:"#44bb88",
+                animation:`repairParticle 0.65s ${i*0.1}s ease-out forwards`,
+                fontFamily:FF,
+              }}>♦</div>
+            ))}
+            {/* Brief green screen tint */}
+            <div style={{
+              position:"absolute",inset:0,
+              background:"rgba(68,187,136,0.06)",
+              animation:"corruptFlash 0.5s ease forwards",
+            }}/>
+          </div>
+        )}
+
+        {abilityFx && abilityFx.type === "data_corruption" && (
+          <div key={abilityFx.id} style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:8,overflow:"hidden"}}>
+            {/* Purple screen flash */}
+            <div style={{
+              position:"absolute",inset:0,
+              background:"rgba(150,40,200,0.13)",
+              animation:"corruptFlash 0.7s ease forwards",
+            }}/>
+            {/* Corruption ray from unit toward right (enemies) */}
+            <div style={{
+              position:"absolute", top:"45%", left:"20%",
+              height:3,
+              background:"linear-gradient(90deg,#aa44cc,#cc44ff88,transparent)",
+              boxShadow:"0 0 8px #aa44cc",
+              animation:"corruptRay 0.5s ease-out forwards",
+            }}/>
+            {/* Second thinner ray */}
+            <div style={{
+              position:"absolute", top:"55%", left:"20%",
+              height:1,
+              background:"linear-gradient(90deg,#aa44cc66,transparent)",
+              animation:"corruptRay 0.6s 0.05s ease-out forwards",
+            }}/>
+            {/* Glitch: unit sprite area shake */}
+            <div style={{
+              position:"absolute", left:"8%", top:"15%", bottom:"30%", width:"16%",
+              background:"rgba(150,40,200,0.07)",
+              animation:"corruptGlitch 0.5s ease forwards",
+            }}/>
+            {/* ▣ symbol burst */}
+            <div style={{
+              position:"absolute", left:"22%", top:"28%",
+              fontSize:13, color:"#cc44ff",
+              fontFamily:FF, fontWeight:700,
+              animation:"podGridFade 0.7s ease-out forwards",
+              textShadow:"0 0 10px #aa44cc",
+            }}>▣</div>
           </div>
         )}
 

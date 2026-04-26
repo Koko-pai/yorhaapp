@@ -2265,7 +2265,7 @@ export default function App() {
 
           {/* ── BATTLE TAB — always mounted to preserve state ── */}
           <div style={{display: tab === "battle" ? "block" : "none"}}>
-            <BattleTab S={S} setS={setS} accent={A} onToast={toast$} fid={fid} equipmentPool={EQUIPMENT_POOL} gachaPool={GACHA_POOL} onRegisterPause={(fn) => { pauseBattleRef.current = fn; }} />
+            <BattleTab S={S} setS={setS} accent={A} onToast={toast$} fid={fid} equipmentPool={EQUIPMENT_POOL} gachaPool={GACHA_POOL} onRegisterPause={(fn) => { pauseBattleRef.current = fn; }} onShowDialogue={(text) => setDialogue({ text, id: Date.now() })} />
           </div>
 
         </div>

@@ -1,63 +1,112 @@
 // ═══════════════════════════════════════════════════════
-// characters.js
-// Все данные персонажей проекта.
+// characters.js — все данные персонажей.
 // Чтобы добавить нового персонажа — создай объект
 // по образцу CHARACTER_10H и зарегистрируй его в CHARACTERS.
 // ═══════════════════════════════════════════════════════
-
-// ── Изображения форм ────────────────────────────────────────────────────────
 
 export const CHARACTER_10H = {
   id: "10h",
   shortName: "No.10 TYPE H",
   fullName: "YoRHa No.10 Type H",
 
-  // Изображения для каждой формы
+  // ── Изображения форм ─────────────────────────────────
   imgs: {
     sentinel: "https://i.ibb.co/DgMDtFFk/nr-10h-sentinel-savior-Photoroom.png",
     abstract: "https://i.ibb.co/kgb7fW9d/nr-10h-abstract-savior-Photoroom.png",
     reborn:   "https://i.ibb.co/4wPkwGsJ/nr-10h-reborn-warden-Photoroom.png",
   },
 
-  // Формы / скины персонажа
+  // ── Формы / скины ────────────────────────────────────
   forms: {
-    sentinel: { name: "SENTINEL SAVIOR", unlockFw: 1,  accent: "#8888cc", desc: "Базовая боевая форма YoRHa No.10 Type H." },
-    abstract: { name: "ABSTRACT SAVIOR", unlockFw: 5,  accent: "#44aaff", desc: "Улучшенная форма. Длинное пальто, расширенный арсенал." },
-    reborn:   { name: "REBORN WARDEN",   unlockFw: 9,  accent: "#ffe0a0", desc: "Финальная форма. Белое облачение, реликвийное оружие." },
+    sentinel: { name: "SENTINEL SAVIOR", unlockFw: 1, accent: "#8888cc", desc: "Базовая боевая форма YoRHa No.10 Type H." },
+    abstract: { name: "ABSTRACT SAVIOR", unlockFw: 5, accent: "#44aaff", desc: "Улучшенная форма. Длинное пальто, расширенный арсенал." },
+    reborn:   { name: "REBORN WARDEN",   unlockFw: 9, accent: "#ffe0a0", desc: "Финальная форма. Белое облачение, реликвийное оружие." },
   },
 
-  // Базовые характеристики для Battle Mode
-  // BASE_HP = baseHp + fw * hpPerFw
-  // BASE_ATK = baseAtk + fw * atkPerFw
+  // ── Базовые боевые характеристики ────────────────────
+  // Лор: Type H — Healer-тип. Выносливость охранника лунного сервера.
+  // Высокое HP, скромная атака. Прирост идёт от экипировки.
   battleStats: {
-    baseHp:   30,
-    hpPerFw:  6,
-    baseAtk:  4,
+    baseHp:   38,    // выше среднего — держала сервер в одиночку месяцами
+    hpPerFw:  7,
+    baseAtk:  3,     // Healer-тип — не Battler
     atkPerFw: 1,
-    baseCrit:    5,
-    baseCritdmg: 40,
+    baseCrit:    4,
+    baseCritdmg: 35,
   },
 
-  // Способности персонажа в Battle Mode
+  // ── Бонусы форм ──────────────────────────────────────
+  // Накапливаются постоянно: разблокировал форму — получил бонус навсегда,
+  // независимо от того, какая форма надета сейчас.
+  // Лор: каждая перезапись (reformat) углубляет опыт и доступ к памяти сети.
+  formBonuses: {
+    sentinel: {
+      // Базовая точка — бонусов нет
+      hp: 0, atk: 0, crit: 0, critdmg: 0,
+      desc: "Стартовые протоколы активированы.",
+    },
+    abstract: {
+      // 46-й реформат. Доступ к зашифрованным данным Pod-сети.
+      // Память других юнитов повышает точность и скорость реакции.
+      hp: 10, atk: 2, crit: 3, critdmg: 10,
+      desc: "Данные Pod-сети интегрированы. Точность систем повышена.",
+    },
+    reborn: {
+      // Осознанное самопожертвование ради других.
+      // Пережив глубокую коррупцию, обретает предельную стойкость.
+      hp: 18, atk: 3, crit: 2, critdmg: 15,
+      desc: "Протокол жертвы активирован. Лунный страж пробуждён.",
+    },
+  },
+
+  // ── Способности в Battle Mode ─────────────────────────
+  // Лор-основа:
+  // · Type H = Healer-тип: восстановление данных и физических повреждений
+  // · Pod 006 — её постоянный компаньон на Луне, сражался рядом
+  // · Взломала Pod-сеть и обнаружила в ней зашифрованные данные о себе
+  // · 54 реформата в одиночестве — патологическая выживаемость
+  // · Пожертвовала собой ради других, используя собственную коррупцию как оружие
   abilities: [
     {
-      id:"pod", name:"POD FIRE", icon:"◈",
-      desc:"Урон всем врагам на экране (60% ATK)",
-      cooldown:8000, color:"#44aaff",
+      // Pod 006 — лазерная решётка по всей арене.
+      // Лор: Pod 006 был её единственным союзником на Луне.
+      // Механика: AOE-урон, умеренный, короткий КД. «Поддержка» поля боя.
+      id:       "pod_grid",
+      name:     "POD GRID",
+      icon:     "◈",
+      desc:     "Pod 006: лазерная решётка — 55% ATK всем врагам",
+      cooldown: 7000,
+      color:    "#8888cc",
     },
     {
-      id:"evade", name:"EVADE", icon:"▷",
-      desc:"Рывок: 1.5с неуязвимость + 120% ATK по ближайшему",
-      cooldown:5000, color:"#c8a882",
+      // Протокол восстановления — суть Healer-типа.
+      // Лор: Type H специализируется на восстановлении физических повреждений
+      // и данных. Это её главное назначение — поддерживать боеспособность.
+      // Механика: лечение. Длинный КД — ценный ресурс, требует решения когда применять.
+      id:       "repair",
+      name:     "REPAIR PROTOCOL",
+      icon:     "♦",
+      desc:     "Восстановить 22% макс. HP. Healer-протокол активирован",
+      cooldown: 14000,
+      color:    "#44bb88",
     },
     {
-      id:"blade", name:"BLADE STORM", icon:"⚔",
-      desc:"200% ATK по цели. Гарантированный крит если HP < 30%",
-      cooldown:12000, color:"#cc4444",
+      // Коррупция данных — финальный акт 10H.
+      // Лор: её сознание было глубоко заражено коррупцией. Она использовала
+      // это как оружие, пожертвовав собой, чтобы уничтожить врагов и дать
+      // другим путь к Земле. Высокая цена — часть истории.
+      // Механика: огромный урон + наносит себе 8% макс. HP.
+      // Гарантированный крит если HP < 40% (смерть как катализатор).
+      id:       "data_corruption",
+      name:     "DATA CORRUPTION",
+      icon:     "▣",
+      desc:     "280% ATK по цели. Цена: -8% HP. Крит если HP < 40%",
+      cooldown: 16000,
+      color:    "#aa44cc",
     },
   ],
 
-  // Диалоги персонажа
+  // ── Диалоги ──────────────────────────────────────────
   dialogues: {
     login: [
       "...Снова ты. Хорошо. Я уже думала, что сервер придётся охранять в одиночестве.",
@@ -138,21 +187,67 @@ export const CHARACTER_10H = {
       "Четыре элемента серии объединены. Полный протокол активирован!",
       "Резонанс максимальный. Командование зафиксировало аномальный сигнал.",
     ],
+
+    // ── Диалоги Battle Mode ────────────────────────────
+    battleStart: [
+      "Протокол боя инициирован. Pod 006, держись рядом.",
+      "Цели обнаружены. Начинаю зачистку.",
+      "...Снова машины. Ладно. Работа есть работа.",
+      "Системы в норме. Начинаем операцию.",
+    ],
+    battleWaveClear: [
+      "Волна пройдена. Продолжаем.",
+      "...Ещё? Хорошо. Я готова.",
+      "Данные обновлены. Следующая цель.",
+      "Pod 006 фиксирует прогресс. Идём дальше.",
+    ],
+    battleBossKill: [
+      "Угроза нейтрализована. Данные сохранены.",
+      "Протокол BOSS-класса завершён. Это было... сложнее обычного.",
+      "...Ты был сильным. Но сервер важнее.",
+      "Командование одобрило бы. Наверное.",
+    ],
+    battleLowHP: [
+      "Системы критические. Активирую протокол восстановления.",
+      "...Не умирать. Сервер ещё нуждается в защите.",
+      "Pod 006, статус: критический. Продолжаю бой.",
+      "54 реформата. Ещё один раз не страшно. Держусь.",
+    ],
+    battleDead: [
+      "Данные... сохранены. Это главное.",
+      "...Реформат {n}. Снова.",
+      "Pod 006... продолжай без меня. Защити их.",
+      "Я вернусь. Всегда возвращаюсь.",
+    ],
+    abilityPodGrid: [
+      "Pod 006 — огонь!",
+      "Лазерная решётка активирована.",
+      "Держите периметр.",
+    ],
+    abilityRepair: [
+      "Протокол восстановления... активирован. Лучше.",
+      "Данные целостности восстановлены.",
+      "...Не идеально. Но достаточно.",
+    ],
+    abilityCorruption: [
+      "Коррупция данных — последний аргумент.",
+      "...Использую повреждённые данные. Ради победы.",
+      "Это больно. Но они не пройдут к серверу.",
+      "Данные нестабильны. Мне всё равно.",
+    ],
   },
 };
 
 
 // ═══════════════════════════════════════════════════════
-// Реестр персонажей (для гачи и выбора персонажа)
-// Добавь сюда нового персонажа, когда будешь готов.
+// Реестр персонажей
 // ═══════════════════════════════════════════════════════
 
 export const CHARACTERS = {
   [CHARACTER_10H.id]: CHARACTER_10H,
-  // "2b": CHARACTER_2B,  ← пример будущего персонажа
+  // "2b": CHARACTER_2B,
 };
 
-// Персонаж по умолчанию
 export const DEFAULT_CHARACTER_ID = CHARACTER_10H.id;
 
 
@@ -160,43 +255,61 @@ export const DEFAULT_CHARACTER_ID = CHARACTER_10H.id;
 // Вспомогательные функции
 // ═══════════════════════════════════════════════════════
 
-/** Возвращает объект персонажа по id (или дефолтного) */
 export function getCharacter(id) {
   return CHARACTERS[id] || CHARACTERS[DEFAULT_CHARACTER_ID];
 }
 
-/** Возвращает изображение персонажа для текущей формы */
 export function getCharacterImg(characterId, formId) {
   const char = getCharacter(characterId);
   return char.imgs[formId] || char.imgs[Object.keys(char.imgs)[0]];
 }
 
-/** Возвращает данные формы персонажа */
 export function getCharacterForm(characterId, formId) {
   const char = getCharacter(characterId);
   return char.forms[formId] || char.forms[Object.keys(char.forms)[0]];
 }
 
-/** Возвращает базовые боевые характеристики персонажа с учётом fw */
-export function computeCharacterBattleBase(characterId, fw) {
+/**
+ * Возвращает базовые боевые характеристики персонажа.
+ * Учитывает fw И все разблокированные формы (unlockedForms).
+ * Бонус формы применяется постоянно — не зависит от надетой формы.
+ */
+export function computeCharacterBattleBase(characterId, fw, unlockedForms) {
   const char = getCharacter(characterId);
-  const s = char.battleStats;
-  return {
-    baseHp:  s.baseHp  + (fw || 1) * s.hpPerFw,
-    baseAtk: s.baseAtk + (fw || 1) * s.atkPerFw,
-    baseCrit:    s.baseCrit,
-    baseCritdmg: s.baseCritdmg,
-  };
+  const s    = char.battleStats;
+
+  let hp      = s.baseHp      + (fw || 1) * s.hpPerFw;
+  let atk     = s.baseAtk     + (fw || 1) * s.atkPerFw;
+  let crit    = s.baseCrit;
+  let critdmg = s.baseCritdmg;
+
+  const unlocked = Array.isArray(unlockedForms) ? unlockedForms : ["sentinel"];
+  const bonuses  = char.formBonuses || {};
+  for (const formId of unlocked) {
+    const b = bonuses[formId];
+    if (!b) continue;
+    hp      += b.hp      || 0;
+    atk     += b.atk     || 0;
+    crit    += b.crit    || 0;
+    critdmg += b.critdmg || 0;
+  }
+
+  return { baseHp: hp, baseAtk: atk, baseCrit: crit, baseCritdmg: critdmg };
 }
 
-/** Возвращает способности персонажа для Battle Mode */
 export function getCharacterAbilities(characterId) {
   return getCharacter(characterId).abilities;
 }
 
-/** Возвращает случайный диалог персонажа по типу */
+/** Строит начальный объект кулдаунов из способностей персонажа */
+export function getInitialCDs(characterId) {
+  const cds = {};
+  for (const ab of getCharacterAbilities(characterId)) cds[ab.id] = 0;
+  return cds;
+}
+
 export function getCharacterDialogue(characterId, type, params) {
-  const char = getCharacter(characterId);
+  const char      = getCharacter(characterId);
   const dialogues = char.dialogues;
   let lines;
   if (type === "missionComplete") {
@@ -207,7 +320,8 @@ export function getCharacterDialogue(characterId, type, params) {
     lines = dialogues[type] || [];
   }
   let line = lines[Math.floor(Math.random() * lines.length)] || "";
-  if (params?.fw)  line = line.replace("{fw}", params.fw);
+  if (params?.fw)  line = line.replace("{fw}",  params.fw);
   if (params?.day) line = line.replace("{day}", params.day);
+  if (params?.n)   line = line.replace("{n}",   params.n);
   return line;
 }
