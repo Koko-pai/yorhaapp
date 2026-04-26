@@ -78,6 +78,48 @@ const LORE_DB = [
 const KEY = "protocol-10h-final";
 
 // ═══════════════════════════════════════════════════════
+// SAVE CODEC  v3  (prefix "YD:")
+// YD:       = deflate-raw + base64  (новый формат)
+// plain b64 = старый формат         (только импорт)
+// ═══════════════════════════════════════════════════════
+const SAVE_PFX = "YD:";
+
+function _u8toB64(u8) {
+  let s = ""; for (const b of u8) s += String.fromCharCode(b); return btoa(s);
+}
+function _b64toU8(s) {
+  const bin = atob(s); const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8;
+}
+async function _deflate(str) {
+  const cs = new CompressionStream("deflate-raw");
+  const w = cs.writable.getWriter(); w.write(new TextEncoder().encode(str)); w.close();
+  const chunks = []; for await (const c of cs.readable) chunks.push(c);
+  const out = new Uint8Array(chunks.reduce((a,c)=>a+c.length,0));
+  let off=0; for (const c of chunks) { out.set(c,off); off+=c.length; }
+  return _u8toB64(out);
+}
+async function _inflate(b64) {
+  const ds = new DecompressionStream("deflate-raw");
+  const w = ds.writable.getWriter(); w.write(_b64toU8(b64)); w.close();
+  const chunks = []; for await (const c of ds.readable) chunks.push(c);
+  const out = new Uint8Array(chunks.reduce((a,c)=>a+c.length,0));
+  let off=0; for (const c of chunks) { out.set(c,off); off+=c.length; }
+  return new TextDecoder().decode(out);
+}
+
+async function encodeState(state) {
+  try { return SAVE_PFX + await _deflate(JSON.stringify(state)); } catch(e) { return ""; }
+}
+async function decodeState(raw) {
+  const s = raw.trim();
+  if (s.startsWith(SAVE_PFX))
+    return JSON.parse(await _inflate(s.slice(SAVE_PFX.length)));
+  // Старый формат — plain base64 JSON
+  return JSON.parse(decodeURIComponent(escape(atob(s))));
+}
+
+// ═══════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════
 
@@ -528,12 +570,11 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
         {alreadyClaimed ? (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
         <button onClick={() => {
-          try {
-            const data = btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+          encodeState(S).then(data => {
             if (navigator.clipboard) {
               navigator.clipboard.writeText(data).then(() => toast$("КОД СОХРАНЕНИЯ СКОПИРОВАН ◈", "#4a9"));
             }
-          } catch(e) { toast$("ОШИБКА ЭКСПОРТА", "#c44"); }
+          }).catch(() => toast$("ОШИБКА ЭКСПОРТА", "#c44"));
         }}
           style={{ background:"#0a0a0a", border:"1px solid #333", color:"#666", width:36, height:36, borderRadius:"50%", fontSize:11, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
           onMouseEnter={e => { e.target.style.borderColor=A; e.target.style.color=A; }}
@@ -638,15 +679,13 @@ function WelcomeScreen({ onNew, onLoad, accent }) {
   const [importError, setImportError] = useState("");
 
   const handleImport = () => {
-    try {
-      setImportError("");
-      const decoded = decodeURIComponent(escape(atob(importText.trim())));
-      const parsed = JSON.parse(decoded);
-      if (typeof parsed !== "object" || parsed === null) throw new Error("Неверный формат");
-      onLoad(parsed);
-    } catch(e) {
-      setImportError("Неверный код сохранения. Проверь и попробуй снова.");
-    }
+    setImportError("");
+    decodeState(importText)
+      .then(parsed => {
+        if (typeof parsed !== "object" || parsed === null) throw new Error("Неверный формат");
+        onLoad(parsed);
+      })
+      .catch(() => setImportError("Неверный код сохранения. Проверь и попробуй снова."));
   };
 
   if (mode === "import") return (
@@ -895,42 +934,32 @@ function SaveManager({ state, onImport, onClose, accent }) {
   const [copied, setCopied] = useState(false);
   const [importError, setImportError] = useState("");
 
-  const exportData = () => {
-    try {
-      const data = JSON.stringify(state);
-      const encoded = btoa(unescape(encodeURIComponent(data)));
-      return encoded;
-    } catch(e) { return ""; }
-  };
+  const [exportCode, setExportCode] = useState("");
+  useEffect(() => {
+    if (mode === "export" && !exportCode)
+      encodeState(state).then(setExportCode);
+  }, [mode]);
 
   const handleCopy = () => {
-    const data = exportData();
+    if (!exportCode) return;
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(data).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+      navigator.clipboard.writeText(exportCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
     } else {
-      // Fallback
       const ta = document.createElement("textarea");
-      ta.value = data;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      ta.value = exportCode; document.body.appendChild(ta); ta.select();
+      document.execCommand("copy"); document.body.removeChild(ta);
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const handleImport = () => {
-    try {
-      setImportError("");
-      const decoded = decodeURIComponent(escape(atob(importText.trim())));
-      const parsed = JSON.parse(decoded);
-      if (typeof parsed !== "object" || parsed === null) throw new Error("Неверный формат");
-      onImport(parsed);
-      onClose();
-    } catch(e) {
-      setImportError("Ошибка: неверный код сохранения");
-    }
+    setImportError("");
+    decodeState(importText)
+      .then(parsed => {
+        if (typeof parsed !== "object" || parsed === null) throw new Error("Неверный формат");
+        onImport(parsed); onClose();
+      })
+      .catch(() => setImportError("Ошибка: неверный код сохранения"));
   };
 
   if (mode === "export") return (
@@ -942,7 +971,7 @@ function SaveManager({ state, onImport, onClose, accent }) {
           Скопируй этот код и сохрани в надёжном месте.<br/>
           Он содержит весь твой прогресс.
         </div>
-        <textarea readOnly value={exportData()} style={{
+        <textarea readOnly value={exportCode || "Генерация..."} style={{
           width:"100%", height:100, background:"#0a0a0a", border:"1px solid #222",
           color:"#555", fontSize:9, padding:10, resize:"none", outline:"none",
           fontFamily:"'Courier New',monospace", wordBreak:"break-all",
