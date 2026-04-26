@@ -31,7 +31,7 @@ const GACHA_POOL = [
   { id: "c3", type: "color",  rarity: "rare",      icon: "◆", name: "Золото YoRHa",          desc: "Цвет командного состава", value: "#ccaa44" },
   { id: "c4", type: "color",  rarity: "rare",      icon: "◆", name: "Лазурный поток",        desc: "Цвет потока данных", value: "#44aacc" },
   { id: "c5", type: "color",  rarity: "epic",      icon: "▲", name: "Пурпур бездны",         desc: "Цвет запретных архивов", value: "#aa44cc" },
-  { id: "c6", type: "color",  rarity: "legendary", icon: "★", name: "Белый шум",             desc: "Цвет конца цикла", value: "#e8e0d0" },
+  { id: "c6", type: "color",  rarity: "legendary", icon: "★", name: "Белый шум",             desc: "Цвет конца цикла", value: "#d8d0c4" },
   // Lore
   { id: "l1", type: "lore",   rarity: "common",    icon: "◇", name: "Файл: Происхождение",   desc: "«YoRHa создана не для победы. Она создана для того, чтобы человечество верило в победу.»" },
   { id: "l2", type: "lore",   rarity: "common",    icon: "◇", name: "Файл: Машины",          desc: "«Машины не просто имитируют людей. Они ищут смысл — так же, как и мы.»" },
@@ -60,7 +60,7 @@ const RARITY_WEIGHTS = { common: 60, rare: 25, epic: 12, legendary: 3 };
 // Фрагменты за дубликат по редкости
 const DUPE_FRAGS = { common: 5, rare: 10, epic: 15, legendary: 20 };
 
-const RARITY_COLORS  = { common: "#888", rare: "#44aaff", epic: "#aa44cc", legendary: "#ffcc00" };
+const RARITY_COLORS  = { common: "#9a9088", rare: "#44aaff", epic: "#aa44cc", legendary: "#ffcc00" };
 
 const LORE_DB = [
   "«Слава человечеству» — наш боевой клич. Ирония в том, что людей больше нет.",
@@ -320,13 +320,13 @@ function MemBar({ mem, max, accent }) {
   const f = Math.round(pct / 100 * N);
   return (
     <div>
-      <div style={{ display:"flex", justifyContent:"space-between", fontSize:9, color:"#555", marginBottom:3, letterSpacing:2 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", fontSize:9, color:"#6a6058", marginBottom:3, letterSpacing:2 }}>
         <span>MEMORY CORE</span>
         <span>{mem}/{max} [{pct}%]</span>
       </div>
       <div style={{ display:"flex", gap:2 }}>
         {Array.from({ length: N }).map((_, i) => (
-          <div key={i} style={{ flex:1, height:8, background: i < f ? accent : "#111", border:"1px solid #1a1a1a", transition:"background 0.4s" }}/>
+          <div key={i} style={{ flex:1, height:8, background: i < f ? accent : "#1e1c18", border:"1px solid #221f1a", transition:"background 0.4s" }}/>
         ))}
       </div>
     </div>
@@ -341,23 +341,23 @@ function ReportModal({ mission, accent, onConfirm, onCancel }) {
   const canSubmit = !required || report.trim().length > 0;
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9992, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
-      <div style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
+    <div style={{ position:"fixed", inset:0, zIndex:9992, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
         {/* Header */}
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ОТЧЁТ О ВЫПОЛНЕНИИ</div>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ОТЧЁТ О ВЫПОЛНЕНИИ</div>
         <div style={{ fontSize:12, fontWeight:700, color:accent, letterSpacing:2, marginBottom:4 }}>{mission.title}</div>
-        <div style={{ fontSize:9, color:"#555", marginBottom:16, display:"flex", gap:8, alignItems:"center" }}>
+        <div style={{ fontSize:9, color:"#6a6058", marginBottom:16, display:"flex", gap:8, alignItems:"center" }}>
           <span style={{ color: mission.threat==="ВЫСОКАЯ"?"#c44":mission.threat==="СРЕДНЯЯ"?"#ca7":"#4a9" }}>
             {mission.threat}
           </span>
           {required && <span style={{ color:"#c44", letterSpacing:1 }}>· ОТЧЁТ ОБЯЗАТЕЛЕН</span>}
-          {optional && <span style={{ color:"#555", letterSpacing:1 }}>· ОТЧЁТ НЕОБЯЗАТЕЛЕН</span>}
+          {optional && <span style={{ color:"#6a6058", letterSpacing:1 }}>· ОТЧЁТ НЕОБЯЗАТЕЛЕН</span>}
         </div>
 
         {/* Report field */}
         {(required || optional) && (
           <>
-            <div style={{ fontSize:9, color:"#444", marginBottom:8, letterSpacing:1 }}>
+            <div style={{ fontSize:9, color:"#5a5248", marginBottom:8, letterSpacing:1 }}>
               {required ? "Опиши что было сделано:" : "Можешь оставить заметку (необязательно):"}
             </div>
             <textarea
@@ -366,9 +366,9 @@ function ReportModal({ mission, accent, onConfirm, onCancel }) {
               placeholder={required ? "Опиши результат выполнения миссии..." : "Необязательно..."}
               autoFocus
               style={{
-                width:"100%", height:100, background:"#0a0a0a",
-                border:"1px solid "+(required && !report.trim() ? "#c44" : "#333"),
-                color:"#888", fontSize:10, padding:10,
+                width:"100%", height:100, background:"#181614",
+                border:"1px solid "+(required && !report.trim() ? "#c44" : "#4a4438"),
+                color:"#9a9088", fontSize:10, padding:10,
                 resize:"none", outline:"none",
                 fontFamily:"'Courier New',monospace",
                 lineHeight:1.6, marginBottom:8,
@@ -387,15 +387,15 @@ function ReportModal({ mission, accent, onConfirm, onCancel }) {
         <div style={{ display:"flex", gap:8, marginTop: (required||optional) ? 4 : 0 }}>
           <button onClick={() => canSubmit && onConfirm(report.trim())}
             disabled={!canSubmit}
-            onMouseEnter={e=>{if(canSubmit){e.target.style.background=accent;e.target.style.color="#000";}}}
-            onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=canSubmit?accent:"#333";}}
-            style={{ flex:1, background:"transparent", border:"1px solid "+(canSubmit?accent:"#333"), color:canSubmit?accent:"#333", padding:"11px", fontSize:9, letterSpacing:3, cursor:canSubmit?"pointer":"not-allowed", transition:"all 0.2s" }}>
+            onMouseEnter={e=>{if(canSubmit){e.target.style.background=accent;e.target.style.color="#0f0e0d";}}}
+            onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=canSubmit?accent:"#4a4438";}}
+            style={{ flex:1, background:"transparent", border:"1px solid "+(canSubmit?accent:"#4a4438"), color:canSubmit?accent:"#4a4438", padding:"11px", fontSize:9, letterSpacing:3, cursor:canSubmit?"pointer":"not-allowed", transition:"all 0.2s" }}>
             ПОДТВЕРДИТЬ ВЫПОЛНЕНИЕ ◈
           </button>
           <button onClick={onCancel}
-            onMouseEnter={e=>{e.target.style.borderColor="#888";e.target.style.color="#888";}}
-            onMouseLeave={e=>{e.target.style.borderColor="#333";e.target.style.color="#555";}}
-            style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"11px 14px", fontSize:9, cursor:"pointer", transition:"all 0.2s" }}>
+            onMouseEnter={e=>{e.target.style.borderColor="#9a9088";e.target.style.color="#9a9088";}}
+            onMouseLeave={e=>{e.target.style.borderColor="#4a4438";e.target.style.color="#6a6058";}}
+            style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"11px 14px", fontSize:9, cursor:"pointer", transition:"all 0.2s" }}>
             ←
           </button>
         </div>
@@ -407,8 +407,8 @@ function ReportModal({ mission, accent, onConfirm, onCancel }) {
 function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, onLogic }) {
   const [h, setH] = useState(false);
   const tc = { "НИЗКАЯ":"#4a9", "СРЕДНЯЯ":"#ca7", "ВЫСОКАЯ":"#c44" };
-  const c = tc[m.threat] || "#888";
-  const LC = "#8888ff";
+  const c = tc[m.threat] || "#9a9088";
+  const LC = "#b0a898";
   const baseReward = { "НИЗКАЯ":"20-30", "СРЕДНЯЯ":"40-55", "ВЫСОКАЯ":"65-80" };
   const baseFrags  = { "НИЗКАЯ":"1", "СРЕДНЯЯ":"2-3", "ВЫСОКАЯ":"4-5" };
   const memStr  = m.isEvent
@@ -424,15 +424,15 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, o
   return (
     <div onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{
-        background: m.isEvent ? "#120000" : m.isLogic ? "#060612" : h?"#0d0d0d":"#080808",
+        background: m.isEvent ? "#120000" : m.isLogic ? "#060612" : h?"#161412":"#141210",
         border: m.isEvent ? "1px solid #cc2222"
           : m.isLogic ? "1px solid #6666aa"
-          : "1px solid "+(h?"#333":"#1a1a1a"),
+          : "1px solid "+(h?"#4a4438":"#221f1a"),
         borderLeft: m.isEvent ? "3px solid #ff2222"
           : m.isLogic ? "3px solid " + LC
-          : "2px solid "+(m.spec==="intellect"?"#8888cc":"#c8a882"),
+          : "2px solid "+(m.spec==="intellect"?"#a09080":"#c8a882"),
         padding:"12px 14px", marginBottom:8, transition:"all 0.2s",
-        boxShadow: m.isEvent ? "0 0 12px #cc000033" : m.isLogic ? "0 0 12px #8888ff22" : "none",
+        boxShadow: m.isEvent ? "0 0 12px #cc000033" : m.isLogic ? "0 0 12px #b0a89822" : "none",
         animation: m.isEvent ? "eventPulse 2s ease-in-out infinite" : "none",
         position:"relative", overflow:"hidden",
       }}>
@@ -454,19 +454,19 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, o
       )}
 
       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-        <span style={{ color: m.isEvent?"#ffaaaa": m.isLogic ? "#bbbbff" :"#e8e0d0", fontSize:11, fontWeight:700, letterSpacing:1 }}>▶ {m.title}</span>
+        <span style={{ color: m.isEvent?"#ffaaaa": m.isLogic ? "#d0c8bc" :"#d8d0c4", fontSize:11, fontWeight:700, letterSpacing:1 }}>▶ {m.title}</span>
         {!m.isLogic && <span style={{ fontSize:8, color:c, border:"1px solid "+c, padding:"1px 6px", letterSpacing:1 }}>{m.threat}</span>}
         {m.isLogic && <span style={{ fontSize:8, color: LC, border:"1px solid "+LC, padding:"1px 6px", letterSpacing:1 }}>ЛОГИКА</span>}
       </div>
-      <p style={{ color:"#555", fontSize:10, margin:"0 0 10px", lineHeight:1.6 }}>{m.desc}</p>
+      <p style={{ color:"#6a6058", fontSize:10, margin:"0 0 10px", lineHeight:1.6 }}>{m.desc}</p>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-          <span style={{ fontSize:9, color: m.isEvent?"#cc4444": m.isLogic ? "#6666aa" :"#444" }}>
+          <span style={{ fontSize:9, color: m.isEvent?"#cc4444": m.isLogic ? "#a09080" :"#5a5248" }}>
             {m.isLogic ? "[COG]" : "["+((m.spec==="intellect")?"COG":"SYN")+"]"} {memStr} MEM · {fragStr}◈
             {m.isEvent && " ×2"}
           </span>
           {tLeft && (
-            <span style={{ fontSize:9, color: isUrgent?"#ff4444":"#555", letterSpacing:1 }}>
+            <span style={{ fontSize:9, color: isUrgent?"#ff4444":"#6a6058", letterSpacing:1 }}>
               ⏱ {tLeft}
             </span>
           )}
@@ -475,22 +475,22 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, o
           {!m.isEvent && !m.isLogic && (
             <button onClick={() => onReroll(m.id)} disabled={!canReroll}
               title={rerollBlocked ? "Заблокировано" : rerollsLeft + " перегенерации осталось"}
-              onMouseEnter={e => { if(canReroll){ e.target.style.borderColor="#888"; e.target.style.color="#888"; }}}
-              onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#444"; }}
-              style={{ background:"transparent", border:"1px solid #333", color:canReroll?"#444":"#222", padding:"4px 8px", fontSize:9, cursor:canReroll?"pointer":"not-allowed", transition:"all 0.2s" }}>
+              onMouseEnter={e => { if(canReroll){ e.target.style.borderColor="#9a9088"; e.target.style.color="#9a9088"; }}}
+              onMouseLeave={e => { e.target.style.borderColor="#4a4438"; e.target.style.color="#5a5248"; }}
+              style={{ background:"transparent", border:"1px solid #3a3228", color:canReroll?"#5a5248":"#3a342e", padding:"4px 8px", fontSize:9, cursor:canReroll?"pointer":"not-allowed", transition:"all 0.2s" }}>
               ↺{rerollsLeft}
             </button>
           )}
           {m.isLogic ? (
             <button onClick={() => onLogic(m)}
-              onMouseEnter={e => { e.currentTarget.style.background = LC; e.currentTarget.style.color = "#000"; }}
+              onMouseEnter={e => { e.currentTarget.style.background = LC; e.currentTarget.style.color = "#0f0e0d"; }}
               onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = LC; }}
               style={{ background:"transparent", border:"1px solid "+LC, color: LC, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
               РЕШИТЬ
             </button>
           ) : (
             <button onClick={() => onDone(m)}
-              onMouseEnter={e => { e.target.style.background = m.isEvent?"#cc2222":accent; e.target.style.color = "#000"; }}
+              onMouseEnter={e => { e.target.style.background = m.isEvent?"#cc2222":accent; e.target.style.color = "#0f0e0d"; }}
               onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = m.isEvent?"#ff4444":accent; }}
               style={{ background:"transparent", border:"1px solid "+(m.isEvent?"#cc2222":accent), color:m.isEvent?"#ff4444":accent, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
               ВЫПОЛНЕНО
@@ -518,10 +518,10 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
   const reward = WEEK_REWARDS[currentDay];
 
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9994, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
-      <div style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:380, width:"100%", padding:24, position:"relative" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:9994, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:380, width:"100%", padding:24, position:"relative" }}>
         {/* Header */}
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ЕЖЕДНЕВНЫЙ ОТЧЁТ</div>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ЕЖЕДНЕВНЫЙ ОТЧЁТ</div>
         <div style={{ fontSize:14, fontWeight:700, color:accent, letterSpacing:3, marginBottom:20 }}>НАГРАДА ЗА ВХОД</div>
 
         {/* Week calendar */}
@@ -536,15 +536,15 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
                 display:"flex", flexDirection:"column", alignItems:"center", gap:4,
                 padding:"8px 4px",
                 border: isToday ? "1px solid "+accent : "1px solid #1a1a1a",
-                background: isClaimed ? "#0d0d0d" : isToday ? "#111" : "#050505",
+                background: isClaimed ? "#161412" : isToday ? "#1e1c18" : "#111009",
                 opacity: isFuture ? 0.4 : 1,
                 position:"relative",
               }}>
-                <div style={{ fontSize:8, color: isToday?accent:isClaimed?"#555":"#444", letterSpacing:1 }}>{days[i]}</div>
-                <div style={{ fontSize:r.special?14:12, color: isClaimed?"#555":isToday?accent:isPast?"#333":"#666" }}>
+                <div style={{ fontSize:8, color: isToday?accent:isClaimed?"#6a6058":"#5a5248", letterSpacing:1 }}>{days[i]}</div>
+                <div style={{ fontSize:r.special?14:12, color: isClaimed?"#6a6058":isToday?accent:isPast?"#4a4438":"#7a7068" }}>
                   {r.special ? "★" : "◈"}
                 </div>
-                <div style={{ fontSize:7, color: isClaimed?"#333":isToday?accent:"#444", textAlign:"center", lineHeight:1.4 }}>
+                <div style={{ fontSize:7, color: isClaimed?"#4a4438":isToday?accent:"#5a5248", textAlign:"center", lineHeight:1.4 }}>
                   {r.label}
                 </div>
                 {isClaimed && (
@@ -558,12 +558,12 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
         </div>
 
         {/* Today reward highlight */}
-        <div style={{ border:"1px solid "+accent+"44", padding:"12px 16px", marginBottom:20, background:"#0a0a0a" }}>
-          <div style={{ fontSize:8, letterSpacing:2, color:"#555", marginBottom:6 }}>СЕГОДНЯ — ДЕНЬ {currentDay+1}</div>
+        <div style={{ border:"1px solid "+accent+"44", padding:"12px 16px", marginBottom:20, background:"#181614" }}>
+          <div style={{ fontSize:8, letterSpacing:2, color:"#6a6058", marginBottom:6 }}>СЕГОДНЯ — ДЕНЬ {currentDay+1}</div>
           <div style={{ fontSize:16, color:accent, fontWeight:700 }}>
             {reward.special ? "★ " : "◈ "}{reward.label}
           </div>
-          {reward.special && <div style={{ fontSize:9, color:"#888", marginTop:4 }}>Бонус за полную неделю!</div>}
+          {reward.special && <div style={{ fontSize:9, color:"#9a9088", marginTop:4 }}>Бонус за полную неделю!</div>}
         </div>
 
         {/* Buttons */}
@@ -576,13 +576,13 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
             }
           }).catch(() => toast$("ОШИБКА ЭКСПОРТА", "#c44"));
         }}
-          style={{ background:"#0a0a0a", border:"1px solid #333", color:"#666", width:36, height:36, borderRadius:"50%", fontSize:11, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
+          style={{ background:"#181614", border:"1px solid #3a3228", color:"#7a7068", width:36, height:36, borderRadius:"50%", fontSize:11, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
           onMouseEnter={e => { e.target.style.borderColor=A; e.target.style.color=A; }}
-          onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#666"; }}
+          onMouseLeave={e => { e.target.style.borderColor="#4a4438"; e.target.style.color="#7a7068"; }}
           title="Быстрый экспорт сохранения">⬆</button>
             <div style={{ fontSize:10, color:"#4a9", textAlign:"center", letterSpacing:2 }}>✓ НАГРАДА УЖЕ ПОЛУЧЕНА</div>
             <button onClick={onClose}
-              onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#000";}}
+              onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#0f0e0d";}}
               onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=accent;}}
               style={{ background:"transparent", border:"1px solid "+accent, color:accent, padding:"10px", fontSize:9, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
               ПРОДОЛЖИТЬ ◈
@@ -590,7 +590,7 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
           </div>
         ) : (
           <button onClick={onClaim}
-            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#000";}}
+            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#0f0e0d";}}
             onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=accent;}}
             style={{ width:"100%", background:"transparent", border:"1px solid "+accent, color:accent, padding:"12px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
             ПОЛУЧИТЬ НАГРАДУ ◈
@@ -641,7 +641,7 @@ function DialoguePopup({ text, formId, onClose }) {
         width:64, height:64, flexShrink:0, marginRight:10,
         borderRadius:"50%", overflow:"hidden",
         border:"2px solid "+f.accent,
-        background:"#000",
+        background:"#0f0e0d",
         boxShadow:"0 0 12px "+f.accent+"44",
       }}>
         <div style={{
@@ -656,7 +656,7 @@ function DialoguePopup({ text, formId, onClose }) {
       {/* Text bubble */}
       <div style={{
         flex:1,
-        background:"rgba(0,0,0,0.92)",
+        background:"rgba(8,7,6,0.94)",
         border:"1px solid "+f.accent+"44",
         borderLeft:"2px solid "+f.accent,
         padding:"10px 14px",
@@ -689,11 +689,11 @@ function WelcomeScreen({ onNew, onLoad, accent }) {
   };
 
   if (mode === "import") return (
-    <div style={{ background:"#000", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:24 }}>
+    <div style={{ background:"#0f0e0d", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:24 }}>
       <div style={{ maxWidth:380, width:"100%" }}>
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ЗАГРУЗКА ДАННЫХ</div>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ЗАГРУЗКА ДАННЫХ</div>
         <div style={{ fontSize:14, fontWeight:700, color:accent, letterSpacing:3, marginBottom:20 }}>ВВЕДИ КОД СОХРАНЕНИЯ</div>
-        <div style={{ fontSize:9, color:"#555", marginBottom:12, lineHeight:1.8 }}>
+        <div style={{ fontSize:9, color:"#6a6058", marginBottom:12, lineHeight:1.8 }}>
           Вставь код который ты сохранил при последнем выходе.
         </div>
         <textarea
@@ -702,8 +702,8 @@ function WelcomeScreen({ onNew, onLoad, accent }) {
           placeholder="Вставь код сохранения сюда..."
           autoFocus
           style={{
-            width:"100%", height:120, background:"#0a0a0a",
-            border:"1px solid #333", color:"#888", fontSize:9,
+            width:"100%", height:120, background:"#181614",
+            border:"1px solid #3a3228", color:"#9a9088", fontSize:9,
             padding:12, resize:"none", outline:"none",
             fontFamily:"'Courier New',monospace", wordBreak:"break-all",
             marginBottom:8,
@@ -714,15 +714,15 @@ function WelcomeScreen({ onNew, onLoad, accent }) {
         )}
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={handleImport} disabled={!importText.trim()}
-            onMouseEnter={e=>{if(importText.trim()){e.target.style.background=accent;e.target.style.color="#000";}}}
-            onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=importText.trim()?accent:"#333";}}
-            style={{ flex:1, background:"transparent", border:"1px solid "+(importText.trim()?accent:"#333"), color:importText.trim()?accent:"#333", padding:"12px", fontSize:9, letterSpacing:3, cursor:importText.trim()?"pointer":"not-allowed", transition:"all 0.2s" }}>
+            onMouseEnter={e=>{if(importText.trim()){e.target.style.background=accent;e.target.style.color="#0f0e0d";}}}
+            onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=importText.trim()?accent:"#4a4438";}}
+            style={{ flex:1, background:"transparent", border:"1px solid "+(importText.trim()?accent:"#4a4438"), color:importText.trim()?accent:"#4a4438", padding:"12px", fontSize:9, letterSpacing:3, cursor:importText.trim()?"pointer":"not-allowed", transition:"all 0.2s" }}>
             ЗАГРУЗИТЬ ◈
           </button>
           <button onClick={() => { setMode("main"); setImportError(""); }}
-            onMouseEnter={e=>{e.target.style.borderColor="#888";e.target.style.color="#888";}}
-            onMouseLeave={e=>{e.target.style.borderColor="#333";e.target.style.color="#555";}}
-            style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"12px 16px", fontSize:9, cursor:"pointer", transition:"all 0.2s" }}>
+            onMouseEnter={e=>{e.target.style.borderColor="#9a9088";e.target.style.color="#9a9088";}}
+            onMouseLeave={e=>{e.target.style.borderColor="#4a4438";e.target.style.color="#6a6058";}}
+            style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"12px 16px", fontSize:9, cursor:"pointer", transition:"all 0.2s" }}>
             ←
           </button>
         </div>
@@ -731,17 +731,17 @@ function WelcomeScreen({ onNew, onLoad, accent }) {
   );
 
   return (
-    <div style={{ background:"#000", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:24 }}>
+    <div style={{ background:"#0f0e0d", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:24 }}>
       <div style={{ maxWidth:380, width:"100%" }}>
         {/* Logo */}
         <div style={{ marginBottom:40, textAlign:"center" }}>
-          <div style={{ fontSize:9, letterSpacing:4, color:"#444", marginBottom:8 }}>
+          <div style={{ fontSize:9, letterSpacing:4, color:"#5a5248", marginBottom:8 }}>
             YORHA ◈ TACTICAL LOG
           </div>
           <div style={{ fontSize:28, fontWeight:700, letterSpacing:4, color:accent, marginBottom:6 }}>
             No.10 Type H
           </div>
-          <div style={{ fontSize:9, letterSpacing:3, color:"#555" }}>
+          <div style={{ fontSize:9, letterSpacing:3, color:"#6a6058" }}>
             ПРОТОКОЛ АКТИВАЦИИ
           </div>
           <div style={{ width:60, height:1, background:accent, margin:"16px auto 0", opacity:0.4 }}/>
@@ -750,20 +750,20 @@ function WelcomeScreen({ onNew, onLoad, accent }) {
         {/* Buttons */}
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <button onClick={() => setMode("import")}
-            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#000";}}
+            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#0f0e0d";}}
             onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=accent;}}
             style={{ background:"transparent", border:"1px solid "+accent, color:accent, padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
             ◈ ЗАГРУЗИТЬ СОХРАНЕНИЕ
           </button>
           <button onClick={onNew}
-            onMouseEnter={e=>{e.target.style.borderColor="#888";e.target.style.color="#888";}}
-            onMouseLeave={e=>{e.target.style.borderColor="#333";e.target.style.color="#555";}}
-            style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
+            onMouseEnter={e=>{e.target.style.borderColor="#9a9088";e.target.style.color="#9a9088";}}
+            onMouseLeave={e=>{e.target.style.borderColor="#4a4438";e.target.style.color="#6a6058";}}
+            style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
             ◇ НАЧАТЬ ЗАНОВО
           </button>
         </div>
 
-        <div style={{ marginTop:24, fontSize:8, color:"#2a2a2a", textAlign:"center", lineHeight:1.8, letterSpacing:1 }}>
+        <div style={{ marginTop:24, fontSize:8, color:"#302b24", textAlign:"center", lineHeight:1.8, letterSpacing:1 }}>
           Прогресс не сохраняется между сессиями.<br/>
           Используй экспорт сохранения перед выходом.
         </div>
@@ -784,18 +784,18 @@ function Boot({ onDone }) {
     return () => clearInterval(t);
   }, []);
   return (
-    <div style={{ position:"fixed", inset:0, background:"#000", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
+    <div style={{ position:"fixed", inset:0, background:"#0f0e0d", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
       <div style={{ width:340, padding:24 }}>
         {lines.map((l, i) => (
           <div key={i} style={{
-            color: (l||"").indexOf("UNIT ONLINE") >= 0 ? "#e8e0d0" : (l||"").indexOf("glory") >= 0 ? "#555" : "#444",
+            color: (l||"").indexOf("UNIT ONLINE") >= 0 ? "#d8d0c4" : (l||"").indexOf("glory") >= 0 ? "#6a6058" : "#5a5248",
             fontSize: (l||"").indexOf("UNIT ONLINE") >= 0 ? 15 : 11,
             letterSpacing: (l||"").indexOf("UNIT ONLINE") >= 0 ? 3 : 1,
             marginBottom: l === "" ? 12 : 3,
             fontWeight: (l||"").indexOf("UNIT ONLINE") >= 0 ? 700 : 400,
           }}>{(l||"") || "\u00A0"}</div>
         ))}
-        <span style={{ color:"#e8e0d0", animation:"blink 1s infinite" }}>_</span>
+        <span style={{ color:"#d8d0c4", animation:"blink 1s infinite" }}>_</span>
       </div>
     </div>
   );
@@ -803,10 +803,10 @@ function Boot({ onDone }) {
 
 function FwUpOverlay({ fw, accent }) {
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9997, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:10 }}>
-      <div style={{ fontSize:9, letterSpacing:4, color:"#555" }}>СИСТЕМНОЕ ОБНОВЛЕНИЕ</div>
+    <div style={{ position:"fixed", inset:0, zIndex:9997, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:10 }}>
+      <div style={{ fontSize:9, letterSpacing:4, color:"#6a6058" }}>СИСТЕМНОЕ ОБНОВЛЕНИЕ</div>
       <div style={{ fontSize:32, fontWeight:700, letterSpacing:6, color:accent }}>v{fw}.0</div>
-      <div style={{ fontSize:10, color:"#555", letterSpacing:3 }}>ПРОШИВКА ОБНОВЛЕНА</div>
+      <div style={{ fontSize:10, color:"#6a6058", letterSpacing:3 }}>ПРОШИВКА ОБНОВЛЕНА</div>
     </div>
   );
 }
@@ -815,15 +815,15 @@ function UnlockFormOverlay({ fid, onClose }) {
   const f = FORMS[fid] || FORMS.sentinel;
   const img = IMGS[fid] || IMGS.sentinel;
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9990, background:"rgba(0,0,0,0.95)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
+    <div style={{ position:"fixed", inset:0, zIndex:9990, background:"rgba(8,7,6,0.97)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
       <div style={{ position:"absolute", inset:0, backgroundImage:"url("+img+")", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center", opacity:0.12 }}/>
       <div style={{ position:"relative", textAlign:"center", padding:24 }}>
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:12 }}>НОВАЯ ФОРМА РАЗБЛОКИРОВАНА</div>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:12 }}>НОВАЯ ФОРМА РАЗБЛОКИРОВАНА</div>
         <div style={{ fontSize:22, fontWeight:700, letterSpacing:4, color:f.accent, marginBottom:20, textShadow:"0 0 30px "+f.accent }}>{f.name}</div>
         <div style={{ width:180, height:240, margin:"0 auto 20px", backgroundImage:"url("+img+")", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center bottom", filter:"drop-shadow(0 0 24px "+f.accent+")" }}/>
-        <div style={{ fontSize:10, color:"#666", maxWidth:280, lineHeight:1.8, margin:"0 auto 24px" }}>{f.desc}</div>
+        <div style={{ fontSize:10, color:"#7a7068", maxWidth:280, lineHeight:1.8, margin:"0 auto 24px" }}>{f.desc}</div>
         <button onClick={onClose}
-          onMouseEnter={e => { e.target.style.background = f.accent; e.target.style.color = "#000"; }}
+          onMouseEnter={e => { e.target.style.background = f.accent; e.target.style.color = "#0f0e0d"; }}
           onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = f.accent; }}
           style={{ background:"transparent", border:"1px solid "+f.accent, color:f.accent, padding:"10px 32px", fontSize:9, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
           ПРИНЯТЬ ◈
@@ -834,7 +834,7 @@ function UnlockFormOverlay({ fid, onClose }) {
 }
 
 function GachaOverlay({ result, onClose }) {
-  const rc = RARITY_COLORS[result.rarity] || "#888";
+  const rc = RARITY_COLORS[result.rarity] || "#9a9088";
   const typeLabels = { title:"ТИТУЛ", color:"СХЕМА", lore:"АРХИВ", weapon:"ОРУЖИЕ", equipment:"СНАРЯЖЕНИЕ" };
   const isEquip = result.type === "equipment";
   const isDupe  = result.isDupe;
@@ -856,32 +856,32 @@ function GachaOverlay({ result, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, zIndex:9995, background:"rgba(0,0,0,0.96)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
       <div style={{ textAlign:"center", padding:32, maxWidth:320, width:"100%" }}>
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:16 }}>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:16 }}>
           {isDupe && !isEquip ? "АРХИВ ДАННЫХ — ДУБЛИКАТ" : "АРХИВ ДАННЫХ — ИЗВЛЕЧЕНИЕ"}
         </div>
         <div style={{ fontSize:40, marginBottom:12, opacity: isDupe && !isEquip ? 0.4 : 1 }}>{result.icon}</div>
         <div style={{ fontSize:10, color:rc, letterSpacing:3, marginBottom:8 }}>
           {result.rarity.toUpperCase()} · {typeLabels[result.type] || "ПРЕДМЕТ"}
-          {isEquip && isDupe && <span style={{ color:"#888" }}> · НОВЫЙ ЭКЗЕМПЛЯР</span>}
+          {isEquip && isDupe && <span style={{ color:"#9a9088" }}> · НОВЫЙ ЭКЗЕМПЛЯР</span>}
         </div>
         {isEquip && result.slot && (
-          <div style={{ fontSize:9, color:"#666", letterSpacing:2, marginBottom:8 }}>
+          <div style={{ fontSize:9, color:"#7a7068", letterSpacing:2, marginBottom:8 }}>
             {SLOT_LABELS[result.slot]}{result.set ? " · " + (EQUIPMENT_SETS[result.set]?.name || "") : ""}
           </div>
         )}
-        <div style={{ fontSize:20, fontWeight:700, color:"#e8e0d0", letterSpacing:2, marginBottom:12 }}>{result.name}</div>
+        <div style={{ fontSize:20, fontWeight:700, color:"#d8d0c4", letterSpacing:2, marginBottom:12 }}>{result.name}</div>
 
         {/* Equipment stats preview */}
         {isEquip && statLines.length > 0 && (
-          <div style={{ background:"#0a0a0a", border:"1px solid #1a1a1a", padding:"10px 16px", marginBottom:16, textAlign:"left" }}>
-            <div style={{ fontSize:7, color:"#444", letterSpacing:2, marginBottom:8 }}>ХАРАКТЕРИСТИКИ</div>
+          <div style={{ background:"#181614", border:"1px solid #221f1a", padding:"10px 16px", marginBottom:16, textAlign:"left" }}>
+            <div style={{ fontSize:7, color:"#5a5248", letterSpacing:2, marginBottom:8 }}>ХАРАКТЕРИСТИКИ</div>
             {statLines.map(({ key, val, label, suffix, isPrimary }) => (
               <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                  <span style={{ fontSize:8, color: isPrimary ? rc : "#2a2a2a" }}>{isPrimary ? "◆" : "·"}</span>
-                  <span style={{ fontSize:8, color: isPrimary ? "#888" : "#555", letterSpacing:1 }}>{label}</span>
+                  <span style={{ fontSize:8, color: isPrimary ? rc : "#302b24" }}>{isPrimary ? "◆" : "·"}</span>
+                  <span style={{ fontSize:8, color: isPrimary ? "#9a9088" : "#6a6058", letterSpacing:1 }}>{label}</span>
                 </div>
-                <span style={{ fontSize: isPrimary ? 10 : 8, fontWeight: isPrimary ? 700 : 400, color: isPrimary ? rc : "#666" }}>
+                <span style={{ fontSize: isPrimary ? 10 : 8, fontWeight: isPrimary ? 700 : 400, color: isPrimary ? rc : "#7a7068" }}>
                   {val}{suffix}
                 </span>
               </div>
@@ -892,21 +892,21 @@ function GachaOverlay({ result, onClose }) {
         {/* Non-equipment dupe: show frag conversion */}
         {isDupe && !isEquip && (
           <div style={{ background:"#0d0900", border:"1px solid #c8a88244", padding:"12px 16px", marginBottom:16 }}>
-            <div style={{ fontSize:8, color:"#888", letterSpacing:1, marginBottom:4 }}>ДУБЛИКАТ ОБНАРУЖЕН</div>
+            <div style={{ fontSize:8, color:"#9a9088", letterSpacing:1, marginBottom:4 }}>ДУБЛИКАТ ОБНАРУЖЕН</div>
             <div style={{ fontSize:12, color:"#c8a882", fontWeight:700 }}>→ +{df} ◈ ФРАГМЕНТОВ</div>
-            <div style={{ fontSize:7, color:"#555", marginTop:4 }}>Предмет уже есть в архиве</div>
+            <div style={{ fontSize:7, color:"#6a6058", marginTop:4 }}>Предмет уже есть в архиве</div>
           </div>
         )}
 
         {!isDupe && !isEquip && (
-          <div style={{ fontSize:11, color:"#666", maxWidth:280, lineHeight:1.8, margin:"0 auto 24px", fontStyle: result.type === "lore" ? "italic" : "normal" }}>
+          <div style={{ fontSize:11, color:"#7a7068", maxWidth:280, lineHeight:1.8, margin:"0 auto 24px", fontStyle: result.type === "lore" ? "italic" : "normal" }}>
             {result.lore || result.desc}
           </div>
         )}
 
         <div style={{ width:60, height:1, background:rc, margin:"0 auto 24px", opacity:0.5 }}/>
         <button onClick={onClose}
-          onMouseEnter={e => { e.target.style.background = rc; e.target.style.color = "#000"; }}
+          onMouseEnter={e => { e.target.style.background = rc; e.target.style.color = "#0f0e0d"; }}
           onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = rc; }}
           style={{ background:"transparent", border:"1px solid "+rc, color:rc, padding:"10px 28px", fontSize:9, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
           {isDupe && !isEquip ? "КОНВЕРТИРОВАНО ◈" : "СОХРАНИТЬ В АРХИВ ◈"}
@@ -963,28 +963,28 @@ function SaveManager({ state, onImport, onClose, accent }) {
   };
 
   if (mode === "export") return (
-    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(0,0,0,0.93)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
-      <div style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ЭКСПОРТ ДАННЫХ</div>
+    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ЭКСПОРТ ДАННЫХ</div>
         <div style={{ fontSize:13, fontWeight:700, color:accent, letterSpacing:3, marginBottom:16 }}>КОД СОХРАНЕНИЯ</div>
-        <div style={{ fontSize:9, color:"#555", marginBottom:12, lineHeight:1.8 }}>
+        <div style={{ fontSize:9, color:"#6a6058", marginBottom:12, lineHeight:1.8 }}>
           Скопируй этот код и сохрани в надёжном месте.<br/>
           Он содержит весь твой прогресс.
         </div>
         <textarea readOnly value={exportCode || "Генерация..."} style={{
-          width:"100%", height:100, background:"#0a0a0a", border:"1px solid #222",
-          color:"#555", fontSize:9, padding:10, resize:"none", outline:"none",
+          width:"100%", height:100, background:"#181614", border:"1px solid #2a2520",
+          color:"#6a6058", fontSize:9, padding:10, resize:"none", outline:"none",
           fontFamily:"'Courier New',monospace", wordBreak:"break-all",
         }}/>
         <div style={{ display:"flex", gap:8, marginTop:12 }}>
           <button onClick={handleCopy}
-            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#000";}}
+            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#0f0e0d";}}
             onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=copied?"#4a9":accent;}}
             style={{ flex:1, background:"transparent", border:"1px solid "+accent, color:copied?"#4a9":accent, padding:"10px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
             {copied ? "✓ СКОПИРОВАНО" : "СКОПИРОВАТЬ ◈"}
           </button>
           <button onClick={() => setMode("main")}
-            style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"10px 16px", fontSize:9, letterSpacing:1, cursor:"pointer" }}>
+            style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"10px 16px", fontSize:9, letterSpacing:1, cursor:"pointer" }}>
             ←
           </button>
         </div>
@@ -993,9 +993,9 @@ function SaveManager({ state, onImport, onClose, accent }) {
   );
 
   if (mode === "import") return (
-    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(0,0,0,0.93)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
-      <div style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ИМПОРТ ДАННЫХ</div>
+    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ИМПОРТ ДАННЫХ</div>
         <div style={{ fontSize:13, fontWeight:700, color:accent, letterSpacing:3, marginBottom:16 }}>ЗАГРУЗИТЬ СОХРАНЕНИЕ</div>
         <div style={{ fontSize:9, color:"#c44", marginBottom:12, lineHeight:1.8 }}>
           ⚠ Текущий прогресс будет заменён!
@@ -1003,20 +1003,20 @@ function SaveManager({ state, onImport, onClose, accent }) {
         <textarea value={importText} onChange={e=>setImportText(e.target.value)}
           placeholder="Вставь код сохранения сюда..."
           style={{
-            width:"100%", height:100, background:"#0a0a0a", border:"1px solid #333",
-            color:"#888", fontSize:9, padding:10, resize:"none", outline:"none",
+            width:"100%", height:100, background:"#181614", border:"1px solid #3a3228",
+            color:"#9a9088", fontSize:9, padding:10, resize:"none", outline:"none",
             fontFamily:"'Courier New',monospace", wordBreak:"break-all",
           }}/>
         {importError && <div style={{ fontSize:9, color:"#c44", marginTop:6 }}>{importError}</div>}
         <div style={{ display:"flex", gap:8, marginTop:12 }}>
           <button onClick={handleImport} disabled={!importText.trim()}
-            onMouseEnter={e=>{if(importText.trim()){e.target.style.background=accent;e.target.style.color="#000";}}}
+            onMouseEnter={e=>{if(importText.trim()){e.target.style.background=accent;e.target.style.color="#0f0e0d";}}}
             onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=accent;}}
-            style={{ flex:1, background:"transparent", border:"1px solid "+(importText.trim()?accent:"#333"), color:importText.trim()?accent:"#333", padding:"10px", fontSize:9, letterSpacing:2, cursor:importText.trim()?"pointer":"not-allowed", transition:"all 0.2s" }}>
+            style={{ flex:1, background:"transparent", border:"1px solid "+(importText.trim()?accent:"#4a4438"), color:importText.trim()?accent:"#4a4438", padding:"10px", fontSize:9, letterSpacing:2, cursor:importText.trim()?"pointer":"not-allowed", transition:"all 0.2s" }}>
             ЗАГРУЗИТЬ ◈
           </button>
           <button onClick={() => { setMode("main"); setImportError(""); }}
-            style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"10px 16px", fontSize:9, letterSpacing:1, cursor:"pointer" }}>
+            style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"10px 16px", fontSize:9, letterSpacing:1, cursor:"pointer" }}>
             ←
           </button>
         </div>
@@ -1026,28 +1026,28 @@ function SaveManager({ state, onImport, onClose, accent }) {
 
   // Main screen
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(0,0,0,0.93)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
-      <div style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
-        <button onClick={onClose} style={{ position:"absolute", top:12, right:12, background:"none", border:"none", color:"#444", fontSize:18, cursor:"pointer" }}>✕</button>
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ УПРАВЛЕНИЕ ДАННЫМИ</div>
+    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
+        <button onClick={onClose} style={{ position:"absolute", top:12, right:12, background:"none", border:"none", color:"#5a5248", fontSize:18, cursor:"pointer" }}>✕</button>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ УПРАВЛЕНИЕ ДАННЫМИ</div>
         <div style={{ fontSize:13, fontWeight:700, color:accent, letterSpacing:3, marginBottom:20 }}>СОХРАНЕНИЯ</div>
 
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
           <button onClick={() => setMode("export")}
-            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#000";}}
+            onMouseEnter={e=>{e.target.style.background=accent;e.target.style.color="#0f0e0d";}}
             onMouseLeave={e=>{e.target.style.background="transparent";e.target.style.color=accent;}}
             style={{ background:"transparent", border:"1px solid "+accent, color:accent, padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s", textAlign:"left" }}>
             ◈ ЭКСПОРТ — сохранить прогресс
           </button>
           <button onClick={() => setMode("import")}
             onMouseEnter={e=>{e.target.style.borderColor="#c44";e.target.style.color="#c44";}}
-            onMouseLeave={e=>{e.target.style.borderColor="#333";e.target.style.color="#666";}}
-            style={{ background:"transparent", border:"1px solid #333", color:"#666", padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s", textAlign:"left" }}>
+            onMouseLeave={e=>{e.target.style.borderColor="#4a4438";e.target.style.color="#7a7068";}}
+            style={{ background:"transparent", border:"1px solid #3a3228", color:"#7a7068", padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s", textAlign:"left" }}>
             ◇ ИМПОРТ — загрузить сохранение
           </button>
         </div>
 
-        <div style={{ marginTop:16, fontSize:9, color:"#333", lineHeight:1.8 }}>
+        <div style={{ marginTop:16, fontSize:9, color:"#4a4438", lineHeight:1.8 }}>
           Экспорт создаёт код который можно сохранить в заметках.<br/>
           Импорт загружает прогресс с другого устройства.
         </div>
@@ -1058,13 +1058,13 @@ function SaveManager({ state, onImport, onClose, accent }) {
 
 function HelpPopup({ onClose, accent }) {
   return (
-    <div style={{ position:"fixed", inset:0, zIndex:9996, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}
+    <div style={{ position:"fixed", inset:0, zIndex:9996, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}
       onClick={onClose}>
-      <div style={{ background:"#0a0a0a", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:420, width:"100%", maxHeight:"85vh", overflowY:"auto", padding:24, position:"relative" }}
+      <div style={{ background:"#181614", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:420, width:"100%", maxHeight:"85vh", overflowY:"auto", padding:24, position:"relative" }}
         onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} style={{ position:"absolute", top:12, right:12, background:"none", border:"none", color:"#444", fontSize:18, cursor:"pointer", lineHeight:1 }}>✕</button>
+        <button onClick={onClose} style={{ position:"absolute", top:12, right:12, background:"none", border:"none", color:"#5a5248", fontSize:18, cursor:"pointer", lineHeight:1 }}>✕</button>
 
-        <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ СПРАВОЧНЫЙ АРХИВ</div>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ СПРАВОЧНЫЙ АРХИВ</div>
         <div style={{ fontSize:14, fontWeight:700, color:accent, letterSpacing:3, marginBottom:20 }}>ПРОТОКОЛ 10H</div>
 
         {[
@@ -1080,13 +1080,13 @@ function HelpPopup({ onClose, accent }) {
           { title:"📅 ЕЖЕДНЕВНАЯ НАГРАДА", body:"При первом входе в день появляется экран с календарём недели. Забирай награду — каждый день приносит фрагменты, а в конце полной недели тебя ждёт бонус побольше.\n\nПропустить день не страшно — неделя не сбрасывается, ты просто продолжаешь с того дня, на котором остановился." },
           { title:"💾 СОХРАНЕНИЯ", body:"Прогресс не сохраняется автоматически. При каждом входе в игру тебе предлагают загрузить сохранение — используй кнопку 💾 внизу экрана, чтобы экспортировать код перед выходом и импортировать его при следующем запуске." },
         ].map((s, i) => (
-          <div key={i} style={{ marginBottom:16, paddingBottom:16, borderBottom:"1px solid #111" }}>
+          <div key={i} style={{ marginBottom:16, paddingBottom:16, borderBottom:"1px solid #1e1c18" }}>
             <div style={{ fontSize:10, color:accent, letterSpacing:2, fontWeight:700, marginBottom:6 }}>{s.title}</div>
-            <div style={{ fontSize:10, color:"#666", lineHeight:1.8 }}>{s.body}</div>
+            <div style={{ fontSize:10, color:"#7a7068", lineHeight:1.8 }}>{s.body}</div>
           </div>
         ))}
 
-        <div style={{ fontSize:8, color:"#2a2a2a", letterSpacing:2, textAlign:"center", marginTop:8 }}>
+        <div style={{ fontSize:8, color:"#302b24", letterSpacing:2, textAlign:"center", marginTop:8 }}>
           YoRHa No.10 Type H · Протокол активирован
         </div>
       </div>
@@ -1111,15 +1111,15 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
   return (
     <div
       onClick={onClose}
-      style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+accent, maxWidth:440, width:"100%", maxHeight:"82vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:440, width:"100%", maxHeight:"82vh", display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
         {/* Header */}
-        <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid #111", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+        <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid #1e1c18", display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
           <div>
-            <div style={{ fontSize:8, letterSpacing:4, color:"#444", marginBottom:3 }}>YORHA ◈ КОМАНДОВАНИЕ</div>
+            <div style={{ fontSize:8, letterSpacing:4, color:"#5a5248", marginBottom:3 }}>YORHA ◈ КОМАНДОВАНИЕ</div>
             <div style={{ fontSize:13, fontWeight:700, color:accent, letterSpacing:2 }}>
               ✉ ВХОДЯЩИЕ ДИРЕКТИВЫ
               {unreadCount > 0 && <span style={{ marginLeft:8, fontSize:9, color:"#c44", border:"1px solid #c44", padding:"1px 5px" }}>+{unreadCount}</span>}
@@ -1128,54 +1128,54 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
           <div style={{ display:"flex", gap:8, alignItems:"center" }}>
             {unreadCount > 0 && (
               <button onClick={onReadAll}
-                style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"5px 10px", fontSize:8, letterSpacing:1, cursor:"pointer" }}>
+                style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"5px 10px", fontSize:8, letterSpacing:1, cursor:"pointer" }}>
                 ВСЕ ПРОЧИТАНЫ
               </button>
             )}
             {inbox.length > 0 && (
               <button onClick={onClear}
                 onMouseEnter={e => { e.target.style.borderColor="#c44"; e.target.style.color="#c44"; }}
-                onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#555"; }}
-                style={{ background:"transparent", border:"1px solid #333", color:"#555", padding:"5px 10px", fontSize:8, letterSpacing:1, cursor:"pointer", transition:"all 0.2s" }}>
+                onMouseLeave={e => { e.target.style.borderColor="#4a4438"; e.target.style.color="#6a6058"; }}
+                style={{ background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"5px 10px", fontSize:8, letterSpacing:1, cursor:"pointer", transition:"all 0.2s" }}>
                 ОЧИСТИТЬ
               </button>
             )}
             <button onClick={onClose}
-              style={{ background:"none", border:"none", color:"#444", fontSize:18, cursor:"pointer", lineHeight:1 }}>✕</button>
+              style={{ background:"none", border:"none", color:"#5a5248", fontSize:18, cursor:"pointer", lineHeight:1 }}>✕</button>
           </div>
         </div>
 
         {/* Content */}
         {inbox.length === 0 ? (
-          <div style={{ padding:"44px 20px", textAlign:"center", color:"#222" }}>
+          <div style={{ padding:"44px 20px", textAlign:"center", color:"#3a342e" }}>
             <div style={{ fontSize:28, marginBottom:10 }}>✉</div>
             <div style={{ fontSize:9, letterSpacing:2 }}>ДИРЕКТИВЫ ОТСУТСТВУЮТ</div>
-            <div style={{ fontSize:9, color:"#1a1a1a", marginTop:6 }}>Запроси миссии — получишь инструктаж</div>
+            <div style={{ fontSize:9, color:"#221f1a", marginTop:6 }}>Запроси миссии — получишь инструктаж</div>
           </div>
         ) : selected ? (
           /* Detail view */
           <div style={{ padding:"20px", overflowY:"auto", flex:1 }}>
             <button onClick={() => setSelected(null)}
-              style={{ background:"transparent", border:"none", color:"#555", fontSize:9, letterSpacing:2, cursor:"pointer", padding:"0 0 16px 0", display:"flex", alignItems:"center", gap:6 }}>
+              style={{ background:"transparent", border:"none", color:"#6a6058", fontSize:9, letterSpacing:2, cursor:"pointer", padding:"0 0 16px 0", display:"flex", alignItems:"center", gap:6 }}>
               ← НАЗАД К СПИСКУ
             </button>
-            <div style={{ fontSize:7, letterSpacing:3, color:"#444", marginBottom:4 }}>ДИРЕКТИВА · КОМАНДОВАНИЕ БУНКЕРА</div>
-            <div style={{ fontSize:12, fontWeight:700, color: selected.isEvent ? "#ff4444" : "#e8e0d0", letterSpacing:1, marginBottom:6 }}>
+            <div style={{ fontSize:7, letterSpacing:3, color:"#5a5248", marginBottom:4 }}>ДИРЕКТИВА · КОМАНДОВАНИЕ БУНКЕРА</div>
+            <div style={{ fontSize:12, fontWeight:700, color: selected.isEvent ? "#ff4444" : "#d8d0c4", letterSpacing:1, marginBottom:6 }}>
               {selected.isEvent && "⚠ "}{selected.missionTitle}
             </div>
             <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-              <span style={{ fontSize:8, color: tc[selected.missionThreat] || "#888", border:"1px solid "+(tc[selected.missionThreat]||"#888"), padding:"1px 6px", letterSpacing:1 }}>
+              <span style={{ fontSize:8, color: tc[selected.missionThreat] || "#9a9088", border:"1px solid "+(tc[selected.missionThreat]||"#9a9088"), padding:"1px 6px", letterSpacing:1 }}>
                 {selected.missionThreat}
               </span>
-              <span style={{ fontSize:8, color:"#444", letterSpacing:1 }}>
+              <span style={{ fontSize:8, color:"#5a5248", letterSpacing:1 }}>
                 {new Date(selected.createdAt).toLocaleString("ru", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}
               </span>
             </div>
-            <div style={{ width:"100%", height:1, background:"#111", marginBottom:16 }}/>
-            <div style={{ fontSize:11, color:"#888", lineHeight:1.9, letterSpacing:0.5 }}>
+            <div style={{ width:"100%", height:1, background:"#1a1814", marginBottom:16 }}/>
+            <div style={{ fontSize:11, color:"#9a9088", lineHeight:1.9, letterSpacing:0.5 }}>
               {selected.hint}
             </div>
-            <div style={{ marginTop:20, fontSize:8, color:"#2a2a2a", letterSpacing:2, textAlign:"right" }}>
+            <div style={{ marginTop:20, fontSize:8, color:"#302b24", letterSpacing:2, textAlign:"right" }}>
               — КОМАНДОВАНИЕ YORHA ◈
             </div>
           </div>
@@ -1185,20 +1185,20 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
             {[...inbox].reverse().map((letter) => (
               <div key={letter.id}
                 onClick={() => { setSelected(letter); if (!letter.read) onRead(letter.id); }}
-                onMouseEnter={e => e.currentTarget.style.background = "#0d0d0d"}
-                onMouseLeave={e => e.currentTarget.style.background = letter.read ? "transparent" : "#0a0a0a"}
+                onMouseEnter={e => e.currentTarget.style.background = "#161412"}
+                onMouseLeave={e => e.currentTarget.style.background = letter.read ? "transparent" : "#181614"}
                 style={{
                   padding:"12px 20px",
                   borderBottom:"1px solid #0d0d0d",
                   cursor:"pointer",
-                  background: letter.read ? "transparent" : "#0a0a0a",
+                  background: letter.read ? "transparent" : "#181614",
                   borderLeft: letter.read ? "2px solid transparent" : "2px solid "+accent,
                   transition:"background 0.15s",
                 }}>
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:4 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:7, minWidth:0 }}>
                     <span style={{ fontSize:10, flexShrink:0 }}>{letter.read ? "✉" : "📨"}</span>
-                    <span style={{ fontSize:10, fontWeight: letter.read ? 400 : 700, color: letter.read ? "#555" : "#e8e0d0", letterSpacing:0.5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    <span style={{ fontSize:10, fontWeight: letter.read ? 400 : 700, color: letter.read ? "#6a6058" : "#d8d0c4", letterSpacing:0.5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                       {letter.isEvent && <span style={{ color:"#ff4444" }}>⚠ </span>}
                       {letter.missionTitle}
                     </span>
@@ -1206,13 +1206,13 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
                   {!letter.read && <span style={{ fontSize:7, color:accent, letterSpacing:1, flexShrink:0, marginLeft:8 }}>НОВОЕ</span>}
                 </div>
                 <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:4 }}>
-                  <span style={{ fontSize:8, color: tc[letter.missionThreat] || "#888" }}>{letter.missionThreat}</span>
-                  <span style={{ fontSize:8, color:"#2a2a2a" }}>·</span>
-                  <span style={{ fontSize:8, color:"#333" }}>
+                  <span style={{ fontSize:8, color: tc[letter.missionThreat] || "#9a9088" }}>{letter.missionThreat}</span>
+                  <span style={{ fontSize:8, color:"#302b24" }}>·</span>
+                  <span style={{ fontSize:8, color:"#4a4438" }}>
                     {new Date(letter.createdAt).toLocaleString("ru", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" })}
                   </span>
                 </div>
-                <div style={{ fontSize:9, color:"#333", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                <div style={{ fontSize:9, color:"#4a4438", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {letter.hint.slice(0, 72)}…
                 </div>
               </div>
@@ -1222,7 +1222,7 @@ function InboxModal({ inbox, onClose, onRead, onReadAll, onClear, accent }) {
 
         {/* Footer */}
         <div style={{ padding:"10px 20px", borderTop:"1px solid #0d0d0d", flexShrink:0 }}>
-          <div style={{ fontSize:8, color:"#1a1a1a", letterSpacing:2, textAlign:"center" }}>
+          <div style={{ fontSize:8, color:"#221f1a", letterSpacing:2, textAlign:"center" }}>
             ДИРЕКТИВЫ · ПРОТОКОЛ 10H · YORHA
           </div>
         </div>
@@ -1274,30 +1274,30 @@ function LogicModal({ mission, onClose, onSuccess, onFail, accent }) {
   const handleClose = () => onClose(attempts);
 
   const attColor = attempts === 3 ? "#4a9" : attempts === 2 ? "#ca7" : "#c44";
-  const LC = "#8888ff"; // logic accent colour
+  const LC = "#b0a898"; // logic accent colour
 
   return (
     <div onClick={handleClose}
-      style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(0,0,0,0.95)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.97)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
       <div onClick={e => e.stopPropagation()}
         style={{
-          background:"#06060e",
-          border:"1px solid #222",
+          background:"#141210",
+          border:"1px solid #2a2520",
           borderTop:"2px solid " + LC,
           maxWidth:460, width:"100%",
-          boxShadow: "0 0 30px #8888ff22",
+          boxShadow: "0 0 30px #b0a89822",
           animation: shake ? "shake 0.4s ease" : "none",
         }}>
 
         {/* Header */}
-        <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid #111" }}>
-          <div style={{ fontSize:8, letterSpacing:4, color:"#555", marginBottom:4 }}>YORHA ◈ ЛОГИЧЕСКАЯ ДИРЕКТИВА</div>
+        <div style={{ padding:"16px 20px 12px", borderBottom:"1px solid #1e1c18" }}>
+          <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ЛОГИЧЕСКАЯ ДИРЕКТИВА</div>
           <div style={{ fontSize:12, fontWeight:700, color: LC, letterSpacing:1 }}>{mission.title}</div>
           <div style={{ display:"flex", gap:10, marginTop:8, alignItems:"center" }}>
             <span style={{ fontSize:8, color: attColor, border:"1px solid " + attColor, padding:"2px 7px", letterSpacing:1 }}>
               ПОПЫТОК: {attempts}
             </span>
-            <span style={{ fontSize:8, color:"#555", letterSpacing:1 }}>ПОВЫШЕННАЯ НАГРАДА</span>
+            <span style={{ fontSize:8, color:"#6a6058", letterSpacing:1 }}>ПОВЫШЕННАЯ НАГРАДА</span>
           </div>
         </div>
 
@@ -1324,7 +1324,7 @@ function LogicModal({ mission, onClose, onSuccess, onFail, accent }) {
 
           {/* Hint */}
           {attempts < 3 && status !== "correct" && status !== "failed" && (
-            <div style={{ fontSize:9, color:"#444", fontStyle:"italic", marginBottom:14, padding:"8px 12px", borderLeft:"2px solid #222" }}>
+            <div style={{ fontSize:9, color:"#5a5248", fontStyle:"italic", marginBottom:14, padding:"8px 12px", borderLeft:"2px solid #222" }}>
               ПОДСКАЗКА: {mission.hint}
             </div>
           )}
@@ -1335,8 +1335,8 @@ function LogicModal({ mission, onClose, onSuccess, onFail, accent }) {
               {mission.options.map((opt, i) => (
                 <button key={i} onClick={() => checkAnswer(opt)}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = LC; e.currentTarget.style.color = LC; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#222"; e.currentTarget.style.color = "#666"; }}
-                  style={{ background:"transparent", border:"1px solid #222", color:"#666", padding:"10px 14px", fontSize:10, textAlign:"left", cursor:"pointer", letterSpacing:0.5, transition:"all 0.15s" }}>
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#3a342e"; e.currentTarget.style.color = "#7a7068"; }}
+                  style={{ background:"transparent", border:"1px solid #2a2520", color:"#7a7068", padding:"10px 14px", fontSize:10, textAlign:"left", cursor:"pointer", letterSpacing:0.5, transition:"all 0.15s" }}>
                   {opt}
                 </button>
               ))}
@@ -1352,13 +1352,13 @@ function LogicModal({ mission, onClose, onSuccess, onFail, accent }) {
                 onKeyDown={e => e.key === "Enter" && answer.trim() && checkAnswer()}
                 placeholder={isNumber ? "Введи число..." : "Введи ответ..."}
                 style={{
-                  flex:1, background:"#0a0a0a", border:"1px solid #333", color:"#e8e0d0",
+                  flex:1, background:"#181614", border:"1px solid #3a3228", color:"#d8d0c4",
                   padding:"10px 12px", fontSize:11, fontFamily:"'Courier New',monospace",
                   outline:"none", letterSpacing:1,
                 }}
               />
               <button onClick={() => answer.trim() && checkAnswer()}
-                onMouseEnter={e => { e.currentTarget.style.background = LC; e.currentTarget.style.color = "#000"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = LC; e.currentTarget.style.color = "#0f0e0d"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = LC; }}
                 style={{ background:"transparent", border:"1px solid " + LC, color: LC, padding:"10px 16px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.15s" }}>
                 ВВОД
@@ -1369,7 +1369,7 @@ function LogicModal({ mission, onClose, onSuccess, onFail, accent }) {
 
         {/* Footer */}
         <div style={{ padding:"10px 20px", borderTop:"1px solid #0d0d0d" }}>
-          <div style={{ fontSize:8, color:"#1a1a1a", letterSpacing:2, textAlign:"center" }}>
+          <div style={{ fontSize:8, color:"#221f1a", letterSpacing:2, textAlign:"center" }}>
             КОГНИТИВНЫЙ ПРОТОКОЛ · YORHA ◈
           </div>
         </div>
@@ -1438,7 +1438,7 @@ export default function App() {
   useEffect(() => { saveState(S); }, [S]);
 
   const toast$ = useCallback((msg, color) => {
-    setToast({ msg, color: color || "#e8e0d0" });
+    setToast({ msg, color: color || "#d8d0c4" });
     setTimeout(() => setToast(null), 3000);
   }, []);
 
@@ -1800,14 +1800,14 @@ export default function App() {
     }
   };
 
-  if (showWelcome) return <WelcomeScreen onNew={startNew} onLoad={loadSave} accent={"#8888cc"} />;
+  if (showWelcome) return <WelcomeScreen onNew={startNew} onLoad={loadSave} accent={"#c8b89a"} />;
   if (booting) return <Boot onDone={() => setBooting(false)} />;
 
   const fid    = (typeof S.form === "string" && FORMS[S.form]) ? S.form : "sentinel";
   const form   = FORMS[fid];
   const img    = IMGS[fid];
   const equippedColorItem = S.equipped && S.equipped.color ? GACHA_POOL.find(i => i.id === S.equipped.color) : null;
-  const A      = (equippedColorItem && equippedColorItem.value) ? equippedColorItem.value : form.accent;
+  const A      = (equippedColorItem && equippedColorItem.value) ? equippedColorItem.value : "#c8b89a";
   const missions  = (S.missions || []).sort((a,b) => (b.isEvent?1:0) - (a.isEvent?1:0));
   const inbox     = S.inbox || [];
   const unreadCount = inbox.filter(l => !l.read).length;
@@ -1822,31 +1822,65 @@ export default function App() {
   const equippedWeapon = S.equipped && S.equipped.weapon ? GACHA_POOL.find(i => i.id === S.equipped.weapon) : null;
 
   return (
-    <div style={{ background:"#000", minHeight:"100vh", fontFamily:"'Courier New',monospace", color:"#e8e0d0", maxWidth:480, margin:"0 auto", position:"relative" }}>
+    <div style={{ background:"#0f0e0d", minHeight:"100vh", fontFamily:"'Courier New',monospace", color:"#d8d0c4", maxWidth:480, margin:"0 auto", position:"relative" }}>
       <style>{`
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
         @keyframes eventPulse{0%,100%{box-shadow:0 0 12px #cc000033}50%{box-shadow:0 0 20px #cc000066}}
         @keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
         @keyframes glow{0%,100%{opacity:0.6}50%{opacity:1}}
         @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+        @keyframes ashDrift{0%{transform:translateY(0px) translateX(0px);opacity:0}10%{opacity:1}90%{opacity:0.4}100%{transform:translateY(-110vh) translateX(20px);opacity:0}}
         *{box-sizing:border-box}
-        input::placeholder{color:#222;font-family:'Courier New',monospace}
+        input::placeholder{color:#332e28;font-family:'Courier New',monospace}
         button{font-family:'Courier New',monospace;cursor:pointer}
         ::-webkit-scrollbar{width:3px}
-        ::-webkit-scrollbar-track{background:#000}
-        ::-webkit-scrollbar-thumb{background:#222}
+        ::-webkit-scrollbar-track{background:#0f0e0d}
+        ::-webkit-scrollbar-thumb{background:#2a2520}
+        .ash-particle{position:absolute;border-radius:50%;background:#c8b8a0;pointer-events:none;animation:ashDrift linear infinite;}
       `}</style>
 
-      {/* Background character */}
+      {/* Background layers — пепельный мир */}
       <div style={{ position:"fixed", inset:0, zIndex:0, pointerEvents:"none", overflow:"hidden" }}>
-        <div style={{ position:"absolute", right:-20, bottom:0, width:360, height:"92vh", backgroundImage:"url("+img+")", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"bottom right", opacity:0.07, transition:"all 1.2s ease" }}/>
-        <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,#000 30%,transparent 70%,#000 100%)" }}/>
-        <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg,#000 0%,transparent 10%,transparent 80%,#000 100%)" }}/>
+        {/* Персонаж */}
+        <div style={{ position:"absolute", right:-20, bottom:0, width:360, height:"92vh", backgroundImage:"url("+img+")", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"bottom right", opacity:0.08, transition:"all 1.2s ease" }}/>
+        {/* Тёплый подсвет снизу — как тлеющие угли */}
+        <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at 50% 110%, rgba(180,130,80,0.07) 0%, transparent 55%)" }}/>
+        {/* Затемнение по краям */}
+        <div style={{ position:"absolute", inset:0, background:"radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,0.55) 100%)" }}/>
+        {/* Горизонтальные градиенты */}
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,rgba(0,0,0,0.5) 0%,transparent 35%,transparent 65%,rgba(0,0,0,0.5) 100%)" }}/>
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(180deg,rgba(0,0,0,0.6) 0%,transparent 12%,transparent 78%,rgba(0,0,0,0.7) 100%)" }}/>
+        {/* Частицы пепла */}
+        {[
+          {left:"8%",  size:1.8, dur:"18s", delay:"0s",   opacity:0.18},
+          {left:"19%", size:1.2, dur:"24s", delay:"4s",   opacity:0.12},
+          {left:"31%", size:2.2, dur:"20s", delay:"8s",   opacity:0.15},
+          {left:"44%", size:1.0, dur:"28s", delay:"2s",   opacity:0.10},
+          {left:"57%", size:1.6, dur:"22s", delay:"12s",  opacity:0.14},
+          {left:"68%", size:1.3, dur:"26s", delay:"6s",   opacity:0.11},
+          {left:"79%", size:2.0, dur:"19s", delay:"16s",  opacity:0.16},
+          {left:"88%", size:1.1, dur:"30s", delay:"9s",   opacity:0.09},
+          {left:"25%", size:1.5, dur:"21s", delay:"14s",  opacity:0.13},
+          {left:"63%", size:1.8, dur:"25s", delay:"3s",   opacity:0.12},
+          {left:"42%", size:1.2, dur:"23s", delay:"18s",  opacity:0.10},
+          {left:"72%", size:1.4, dur:"27s", delay:"7s",   opacity:0.14},
+        ].map((p,i) => (
+          <div key={i} className="ash-particle" style={{
+            left: p.left,
+            bottom: "-4px",
+            width: p.size+"px",
+            height: p.size+"px",
+            opacity: p.opacity,
+            animationDuration: p.dur,
+            animationDelay: p.delay,
+          }}/>
+        ))}
       </div>
-      <div style={{ position:"fixed", inset:0, zIndex:1, pointerEvents:"none", background:"repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px)" }}/>
+      {/* Тонкие горизонтальные сканлайны */}
+      <div style={{ position:"fixed", inset:0, zIndex:1, pointerEvents:"none", background:"repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px)" }}/>
 
       {/* Overlays */}
-      {toast && <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", background:"#000", border:"1px solid "+toast.color, color:toast.color, padding:"7px 20px", fontSize:10, letterSpacing:2, zIndex:9998, animation:"slideDown 0.3s ease", whiteSpace:"nowrap" }}>{toast.msg}</div>}
+      {toast && <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", background:"#0f0e0d", border:"1px solid "+toast.color, color:toast.color, padding:"7px 20px", fontSize:10, letterSpacing:2, zIndex:9998, animation:"slideDown 0.3s ease", whiteSpace:"nowrap" }}>{toast.msg}</div>}
       {fwUp && <FwUpOverlay fw={fwUp} accent={A} />}
       {formUnlock && <UnlockFormOverlay fid={formUnlock} onClose={() => setFormUnlock(null)} />}
       {gachaResult && <GachaOverlay result={gachaResult} onClose={() => setGachaResult(null)} />}
@@ -1874,7 +1908,7 @@ export default function App() {
           onSuccess={(m) => {
             setLogicMission(null);
             completeMission(m, null);
-            toast$("⬡ ЛОГИЧЕСКАЯ ДИРЕКТИВА ВЫПОЛНЕНА", "#8888ff");
+            toast$("⬡ ЛОГИЧЕСКАЯ ДИРЕКТИВА ВЫПОЛНЕНА", "#b0a898");
           }}
           onFail={(m) => {
             setLogicMission(null);
@@ -1904,32 +1938,32 @@ export default function App() {
       {/* Help button */}
       <div style={{ position:"fixed", bottom:20, right:16, zIndex:20, display:"flex", flexDirection:"column", gap:8 }}>
         <button onClick={() => setShowSave(true)}
-          style={{ background:"#0a0a0a", border:"1px solid #333", color:"#666", width:36, height:36, borderRadius:"50%", fontSize:12, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
+          style={{ background:"#1a1710", border:"1px solid #3a3228", color:"#6a6058", width:36, height:36, borderRadius:"50%", fontSize:12, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
           onMouseEnter={e => { e.target.style.borderColor=A; e.target.style.color=A; }}
-          onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#666"; }}
+          onMouseLeave={e => { e.target.style.borderColor="#4a4438"; e.target.style.color="#7a7068"; }}
           title="Управление сохранениями">💾</button>
         <button onClick={() => setShowHelp(true)}
-          style={{ background:"#0a0a0a", border:"1px solid #333", color:"#666", width:36, height:36, borderRadius:"50%", fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
+          style={{ background:"#1a1710", border:"1px solid #3a3228", color:"#6a6058", width:36, height:36, borderRadius:"50%", fontSize:14, fontWeight:700, cursor:"pointer", transition:"all 0.2s", display:"flex", alignItems:"center", justifyContent:"center" }}
           onMouseEnter={e => { e.target.style.borderColor=A; e.target.style.color=A; }}
-          onMouseLeave={e => { e.target.style.borderColor="#333"; e.target.style.color="#666"; }}
+          onMouseLeave={e => { e.target.style.borderColor="#4a4438"; e.target.style.color="#7a7068"; }}
           title="Справка">?</button>
       </div>
 
       <div style={{ position:"relative", zIndex:2 }}>
 
         {/* ── HEADER ── */}
-        <div style={{ borderBottom:"1px solid #111", padding:"16px 16px 14px", background:"rgba(0,0,0,0.9)", position:"relative" }}>
+        <div style={{ borderBottom:"1px solid #1e1c18", padding:"16px 16px 14px", background:"rgba(15,14,13,0.95)", position:"relative" }}>
           <div style={{ position:"absolute", top:0, left:0, right:0, height:1, background:"linear-gradient(90deg,transparent,"+A+"55 35%,"+A+"55 65%,transparent)" }}/>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div>
-                <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:3 }}>YORHA ◈ TACTICAL LOG</div>
+                <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:3 }}>YORHA ◈ TACTICAL LOG</div>
                 <div style={{ fontSize:16, fontWeight:700, letterSpacing:3, color:A, transition:"color 0.8s" }}>No.10 Type H</div>
-                <div style={{ fontSize:8, color:"#555", letterSpacing:2, marginTop:2 }}>
+                <div style={{ fontSize:8, color:"#6a6058", letterSpacing:2, marginTop:2 }}>
                   {form.name}
-                  {equippedTitle ? <span style={{ color:"#888" }}> · {equippedTitle.name}</span> : null}
+                  {equippedTitle ? <span style={{ color:"#9a9088" }}> · {equippedTitle.name}</span> : null}
                 </div>
-                {equippedWeapon && <div style={{ fontSize:8, color:"#444", marginTop:2 }}>⚔ {equippedWeapon.name}</div>}
+                {equippedWeapon && <div style={{ fontSize:8, color:"#5a5048", marginTop:2 }}>⚔ {equippedWeapon.name}</div>}
               </div>
               <button
                 onClick={() => setShowInbox(true)}
@@ -1937,8 +1971,8 @@ export default function App() {
                 style={{
                   position:"relative",
                   background:"transparent",
-                  border:"1px solid "+(unreadCount > 0 ? A : "#222"),
-                  color: unreadCount > 0 ? A : "#444",
+                  border:"1px solid "+(unreadCount > 0 ? A : "#3a342e"),
+                  color: unreadCount > 0 ? A : "#5a5248",
                   width:30, height:30,
                   display:"flex", alignItems:"center", justifyContent:"center",
                   fontSize:14, cursor:"pointer",
@@ -1961,24 +1995,24 @@ export default function App() {
               </button>
             </div>
             <div style={{ textAlign:"right" }}>
-              <div style={{ fontSize:8, letterSpacing:2, color:"#444" }}>ПРОШИВКА</div>
+              <div style={{ fontSize:8, letterSpacing:2, color:"#5a5248" }}>ПРОШИВКА</div>
               <div style={{ fontSize:22, fontWeight:700, color:A, letterSpacing:2 }}>v{S.fw}.0</div>
-              <div style={{ fontSize:8, color:"#555" }}>
+              <div style={{ fontSize:8, color:"#6a6058" }}>
                 <span style={{ color:"#c8a882" }}>◈ {S.frags}</span>
-                <span style={{ color:"#444" }}> · </span>
+                <span style={{ color:"#5a5248" }}> · </span>
                 <span>{completed.length} МИССИЙ</span>
               </div>
             </div>
           </div>
           <MemBar mem={S.mem} max={S.memMax} accent={A} />
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginTop:12 }}>
-            {[{abbr:"COG",label:"КОГНИТИВ",val:S.cog,color:"#8888cc"},{abbr:"SYN",label:"СИНТЕЗ",val:S.syn,color:"#c8a882"}].map(sp => (
+            {[{abbr:"COG",label:"КОГНИТИВ",val:S.cog,color:"#a09080"},{abbr:"SYN",label:"СИНТЕЗ",val:S.syn,color:"#c8a882"}].map(sp => (
               <div key={sp.abbr}>
                 <div style={{ display:"flex", justifyContent:"space-between", fontSize:8, letterSpacing:2, marginBottom:2 }}>
-                  <span style={{ color:"#555" }}>[{sp.abbr}] {sp.label}</span>
+                  <span style={{ color:"#6a6058" }}>[{sp.abbr}] {sp.label}</span>
                   <span style={{ color:sp.color }}>{String(sp.val).padStart(2,"0")}/10</span>
                 </div>
-                <div style={{ height:2, background:"#0a0a0a" }}>
+                <div style={{ height:2, background:"#1a1814" }}>
                   <div style={{ height:"100%", width:(sp.val*10)+"%", background:sp.color, transition:"width 0.6s" }}/>
                 </div>
               </div>
@@ -1987,10 +2021,10 @@ export default function App() {
         </div>
 
         {/* ── TABS ── */}
-        <div style={{ display:"flex", background:"rgba(0,0,0,0.9)", borderBottom:"1px solid #111", position:"sticky", top:0, zIndex:10 }}>
+        <div style={{ display:"flex", background:"rgba(15,14,13,0.95)", borderBottom:"1px solid #1e1c18", position:"sticky", top:0, zIndex:10 }}>
           {[["missions","◆ МИССИИ"],["equip","⚔ БРОНЯ"],["unit","◈ ЮНИТ"],["gacha","✦ АРХИВ"],["log","◇ ЖУРНАЛ"],["battle","⚡ БОЙ"]].map(([id,l]) => (
             <button key={id} onClick={() => setTab(id)}
-              style={{ flex:1, padding:"10px 2px", border:"none", background:"transparent", color:tab===id?"#e8e0d0":"#333", borderBottom:"1px solid "+(tab===id?A:"transparent"), fontSize:7, letterSpacing:1, transition:"all 0.2s" }}>
+              style={{ flex:1, padding:"10px 2px", border:"none", background:"transparent", color:tab===id?"#d8d0c4":"#4a4540", borderBottom:"1px solid "+(tab===id?A:"transparent"), fontSize:7, letterSpacing:1, transition:"all 0.2s" }}>
               {l}
             </button>
           ))}
@@ -2013,7 +2047,7 @@ export default function App() {
                 return (
                   <>
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                      <div style={{ fontSize:8, color:"#555", letterSpacing:2 }}>
+                      <div style={{ fontSize:8, color:"#6a6058", letterSpacing:2 }}>
                         ГЕНЕРАЦИЙ СЕГОДНЯ: <span style={{ color: gensLeft>0?A:"#c44" }}>{genToday}/3</span>
                       </div>
                       {rerollBlocked && (
@@ -2022,15 +2056,15 @@ export default function App() {
                         </div>
                       )}
                       {!rerollBlocked && rerollsLeft < 3 && (
-                        <div style={{ fontSize:8, color:"#555", letterSpacing:1 }}>
+                        <div style={{ fontSize:8, color:"#6a6058", letterSpacing:1 }}>
                           ↺ осталось: {rerollsLeft}
                         </div>
                       )}
                     </div>
                     <button onClick={fetchMissions} disabled={loading || limitReached}
-                      onMouseEnter={e => { if(!loading&&!limitReached){ e.target.style.background=A; e.target.style.color="#000"; } }}
-                      onMouseLeave={e => { e.target.style.background="transparent"; e.target.style.color=(loading||limitReached)?"#333":A; }}
-                      style={{ width:"100%", marginBottom:14, background:"transparent", border:"1px solid "+((loading||limitReached)?"#222":A), color:(loading||limitReached)?"#333":A, padding:"12px", fontSize:9, letterSpacing:3, transition:"all 0.3s", cursor:(loading||limitReached)?"not-allowed":"pointer" }}>
+                      onMouseEnter={e => { if(!loading&&!limitReached){ e.target.style.background=A; e.target.style.color="#0f0e0d"; } }}
+                      onMouseLeave={e => { e.target.style.background="transparent"; e.target.style.color=(loading||limitReached)?"#4a4438":A; }}
+                      style={{ width:"100%", marginBottom:14, background:"transparent", border:"1px solid "+((loading||limitReached)?"#3a342e":A), color:(loading||limitReached)?"#4a4438":A, padding:"12px", fontSize:9, letterSpacing:3, transition:"all 0.3s", cursor:(loading||limitReached)?"not-allowed":"pointer" }}>
                       {loading ? ">> ПОЛУЧЕНИЕ ДАННЫХ С БУНКЕРА..."
                         : limitReached ? ">> ЛИМИТ ИСЧЕРПАН · СБРОС: " + fmtTime(msLeft)
                         : ">> ЗАПРОСИТЬ ЗАДАНИЯ У КОМАНДОВАНИЯ [" + gensLeft + "]"}
@@ -2042,17 +2076,17 @@ export default function App() {
                 );
               })()}
               {missions.length === 0 && !loading && (
-                <div style={{ textAlign:"center", padding:"44px 0", color:"#222" }}>
+                <div style={{ textAlign:"center", padding:"44px 0", color:"#3a342e" }}>
                   <div style={{ fontSize:32, marginBottom:10 }}>◆</div>
                   <div style={{ fontSize:9, letterSpacing:2 }}>НЕТ АКТИВНЫХ МИССИЙ</div>
-                  <div style={{ fontSize:9, color:"#1a1a1a", marginTop:6 }}>Запроси задания у командования</div>
+                  <div style={{ fontSize:9, color:"#221f1a", marginTop:6 }}>Запроси задания у командования</div>
                 </div>
               )}
               {completed.length > 0 && (
                 <div style={{ marginTop:20 }}>
-                  <div style={{ fontSize:8, color:"#222", letterSpacing:3, marginBottom:8, borderTop:"1px solid #0d0d0d", paddingTop:12 }}>АРХИВ ВЫПОЛНЕННЫХ [{completed.length}]</div>
+                  <div style={{ fontSize:8, color:"#3a342e", letterSpacing:3, marginBottom:8, borderTop:"1px solid #0d0d0d", paddingTop:12 }}>АРХИВ ВЫПОЛНЕННЫХ [{completed.length}]</div>
                   {completed.slice(0,5).map((m,i) => (
-                    <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid #0a0a0a", fontSize:9, color:"#2a2a2a" }}>
+                    <div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"5px 0", borderBottom:"1px solid #0a0a0a", fontSize:9, color:"#302b24" }}>
                       <span>◇ {m.title}</span>
                       <span style={{ color:"#4a9" }}>+{m.memory}</span>
                     </div>
@@ -2070,38 +2104,38 @@ export default function App() {
           {/* ── UNIT TAB ── */}
           {tab === "unit" && (
             <div>
-              <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:8 }}>АКТИВНАЯ ФОРМА</div>
+              <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:8 }}>АКТИВНАЯ ФОРМА</div>
               <div style={{ position:"relative", border:"1px solid "+A+"33", borderTop:"2px solid "+A, marginBottom:20, overflow:"hidden" }}>
                 <div style={{ height:320, backgroundImage:"url("+img+")", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center bottom", filter:"drop-shadow(0 0 28px "+A+"33)", transition:"all 0.8s" }}/>
                 <div style={{ position:"absolute", bottom:0, left:0, right:0, padding:"12px 16px", background:"linear-gradient(0deg,#000 65%,transparent)" }}>
-                  <div style={{ fontSize:8, color:"#444", letterSpacing:3, marginBottom:3 }}>YoRHa No.10 Type H</div>
+                  <div style={{ fontSize:8, color:"#5a5248", letterSpacing:3, marginBottom:3 }}>YoRHa No.10 Type H</div>
                   <div style={{ fontSize:14, color:A, letterSpacing:3, fontWeight:700 }}>{form.name}</div>
-                  <div style={{ fontSize:9, color:"#555", marginTop:4, lineHeight:1.6 }}>{form.desc}</div>
+                  <div style={{ fontSize:9, color:"#6a6058", marginTop:4, lineHeight:1.6 }}>{form.desc}</div>
                 </div>
               </div>
 
-              <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:8 }}>КОЛЛЕКЦИЯ ФОРМ</div>
+              <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:8 }}>КОЛЛЕКЦИЯ ФОРМ</div>
               {["sentinel","abstract","reborn"].map(id => {
                 const f = FORMS[id];
                 const unl = inArr(unlocked, id);
                 const isAct = fid === id;
                 return (
                   <div key={id} onClick={() => unl && setS(p => ({ ...p, form: id }))}
-                    style={{ display:"flex", gap:12, alignItems:"center", padding:"10px 12px", marginBottom:6, border:"1px solid "+(isAct?f.accent:"#1a1a1a"), background:isAct?"#0d0d0d":"#050505", opacity:unl?1:0.3, cursor:unl?"pointer":"default", transition:"all 0.2s" }}>
-                    <div style={{ width:48, height:64, backgroundImage:unl?"url("+IMGS[id]+")":"none", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center bottom", background:unl?"none":"#0a0a0a", border:unl?"none":"1px solid #111", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {!unl && <span style={{ fontSize:18, color:"#555" }}>◈</span>}
+                    style={{ display:"flex", gap:12, alignItems:"center", padding:"10px 12px", marginBottom:6, border:"1px solid "+(isAct?f.accent:"#221f1a"), background:isAct?"#161412":"#111009", opacity:unl?1:0.3, cursor:unl?"pointer":"default", transition:"all 0.2s" }}>
+                    <div style={{ width:48, height:64, backgroundImage:unl?"url("+IMGS[id]+")":"none", backgroundSize:"contain", backgroundRepeat:"no-repeat", backgroundPosition:"center bottom", background:unl?"none":"#181614", border:unl?"none":"1px solid #1e1c18", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {!unl && <span style={{ fontSize:18, color:"#6a6058" }}>◈</span>}
                     </div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:10, color:unl?f.accent:"#555", letterSpacing:2, fontWeight:700 }}>{f.name}</div>
-                      <div style={{ fontSize:9, color:unl?"#3a3a3a":"#555", marginTop:3 }}>{unl ? f.desc.slice(0,50)+"…" : "ЗАКРЫТО — v"+f.unlockFw+".0"}</div>
+                      <div style={{ fontSize:10, color:unl?f.accent:"#6a6058", letterSpacing:2, fontWeight:700 }}>{f.name}</div>
+                      <div style={{ fontSize:9, color:unl?"#3a3a3a":"#6a6058", marginTop:3 }}>{unl ? f.desc.slice(0,50)+"…" : "ЗАКРЫТО — v"+f.unlockFw+".0"}</div>
                     </div>
                     {isAct && <span style={{ color:f.accent, fontSize:14 }}>◈</span>}
                   </div>
                 );
               })}
 
-              <div style={{ marginTop:16, fontSize:8, letterSpacing:3, color:"#444", marginBottom:4 }}>
-                ДОСТИЖЕНИЯ <span style={{color:"#555"}}>({achi.length}/28)</span>
+              <div style={{ marginTop:16, fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:4 }}>
+                ДОСТИЖЕНИЯ <span style={{color:"#6a6058"}}>({achi.length}/28)</span>
               </div>
               {[
                 {id:"b1",  icon:"◈", t:"ПЕРВЫЙ ЗАПУСК"},
@@ -2135,9 +2169,9 @@ export default function App() {
               ].map(a => {
                 const e = inArr(achi, a.id);
                 return (
-                  <div key={a.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", marginBottom:5, border:"1px solid "+(e?"#333":"#111"), background:e?"#0a0a0a":"#050505" }}>
-                    <span style={{ fontSize:14, color:e?"#e8e0d0":"#2a2a2a" }}>{a.icon}</span>
-                    <span style={{ fontSize:10, color:e?"#888":"#3a3a3a", letterSpacing:1 }}>{a.t}</span>
+                  <div key={a.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", marginBottom:5, border:"1px solid "+(e?"#4a4438":"#1e1c18"), background:e?"#181614":"#111009" }}>
+                    <span style={{ fontSize:14, color:e?"#d8d0c4":"#302b24" }}>{a.icon}</span>
+                    <span style={{ fontSize:10, color:e?"#9a9088":"#3a3a3a", letterSpacing:1 }}>{a.t}</span>
                     {e && <span style={{ marginLeft:"auto", color:A, fontSize:10 }}>✓</span>}
                   </div>
                 );
@@ -2149,21 +2183,21 @@ export default function App() {
           {tab === "gacha" && (
             <div>
               {/* Pull button */}
-              <div style={{ border:"1px solid #1a1a1a", borderTop:"2px solid "+A, padding:20, marginBottom:20, textAlign:"center" }}>
-                <div style={{ fontSize:8, letterSpacing:3, color:"#555", marginBottom:8 }}>АРХИВ ДАННЫХ YoRHa</div>
-                <div style={{ fontSize:11, color:"#888", lineHeight:1.8, marginBottom:16 }}>
+              <div style={{ border:"1px solid #221f1a", borderTop:"2px solid "+A, padding:20, marginBottom:20, textAlign:"center" }}>
+                <div style={{ fontSize:8, letterSpacing:3, color:"#6a6058", marginBottom:8 }}>АРХИВ ДАННЫХ YoRHa</div>
+                <div style={{ fontSize:11, color:"#9a9088", lineHeight:1.8, marginBottom:16 }}>
                   За каждую выполненную миссию ты получаешь<br/>
                   <span style={{ color:"#c8a882" }}>◈ фрагменты данных</span>. Накопи 10 — и извлеки запись из архива.
                 </div>
                 <div style={{ fontSize:28, color:"#c8a882", marginBottom:4 }}>◈ {S.frags}</div>
-                <div style={{ fontSize:9, color:"#444", marginBottom:20 }}>фрагментов накоплено</div>
-                <div style={{ height:4, background:"#111", borderRadius:2, marginBottom:20, overflow:"hidden" }}>
+                <div style={{ fontSize:9, color:"#5a5248", marginBottom:20 }}>фрагментов накоплено</div>
+                <div style={{ height:4, background:"#1a1814", borderRadius:2, marginBottom:20, overflow:"hidden" }}>
                   <div style={{ height:"100%", width: Math.min(100, (S.frags % 10) * 10) + "%", background: A, transition:"width 0.4s" }}/>
                 </div>
                 <button onClick={doGacha} disabled={S.frags < 10}
-                  onMouseEnter={e => { if(S.frags>=10){ e.target.style.background=A; e.target.style.color="#000"; } }}
-                  onMouseLeave={e => { e.target.style.background="transparent"; e.target.style.color=S.frags<10?"#333":A; }}
-                  style={{ background:"transparent", border:"1px solid "+(S.frags<10?"#222":A), color:S.frags<10?"#333":A, padding:"12px 32px", fontSize:10, letterSpacing:3, transition:"all 0.3s" }}>
+                  onMouseEnter={e => { if(S.frags>=10){ e.target.style.background=A; e.target.style.color="#0f0e0d"; } }}
+                  onMouseLeave={e => { e.target.style.background="transparent"; e.target.style.color=S.frags<10?"#4a4438":A; }}
+                  style={{ background:"transparent", border:"1px solid "+(S.frags<10?"#3a342e":A), color:S.frags<10?"#4a4438":A, padding:"12px 32px", fontSize:10, letterSpacing:3, transition:"all 0.3s" }}>
                   {S.frags < 10 ? "НЕДОСТАТОЧНО ФРАГМЕНТОВ" : "✦ ИЗВЛЕЧЬ ИЗ АРХИВА (-10 ◈)"}
                 </button>
               </div>
@@ -2171,9 +2205,9 @@ export default function App() {
               {/* Inventory */}
               {inventory.length > 0 && (
                 <div>
-                  <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:10 }}>КОЛЛЕКЦИЯ [{inventory.length}]</div>
+                  <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:10 }}>КОЛЛЕКЦИЯ [{inventory.length}]</div>
                   {GACHA_POOL.filter(item => inArr(inventory, item.id)).map(item => {
-                    const rc = RARITY_COLORS[item.rarity] || "#888";
+                    const rc = RARITY_COLORS[item.rarity] || "#9a9088";
                     const typeLabels = { title:"ТИТУЛ", color:"СХЕМА", lore:"АРХИВ", weapon:"ОРУЖИЕ" };
                     const isWeapon = item.type === "weapon";
                     const isEquipped = !isWeapon && S.equipped && (
@@ -2195,19 +2229,19 @@ export default function App() {
                             return { ...p, equipped: eq };
                           });
                         }}
-                        style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 12px", marginBottom:6, border:"1px solid "+((isEquipped||weaponEquipped)?rc:"#1a1a1a"), background:(isEquipped||weaponEquipped)?"#0d0d0d":"#050505", cursor:isWeapon?"default":"pointer", transition:"all 0.2s" }}>
+                        style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 12px", marginBottom:6, border:"1px solid "+((isEquipped||weaponEquipped)?rc:"#221f1a"), background:(isEquipped||weaponEquipped)?"#161412":"#111009", cursor:isWeapon?"default":"pointer", transition:"all 0.2s" }}>
                         <span style={{ fontSize:18, color:rc }}>{item.icon}</span>
                         <div style={{ flex:1 }}>
                           <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:2 }}>
-                            <span style={{ fontSize:10, color:"#e8e0d0", fontWeight:700 }}>{item.name}</span>
+                            <span style={{ fontSize:10, color:"#d8d0c4", fontWeight:700 }}>{item.name}</span>
                             <span style={{ fontSize:8, color:rc, letterSpacing:1 }}>{item.rarity.toUpperCase()}</span>
-                            <span style={{ fontSize:8, color:"#444" }}>{typeLabels[item.type]}</span>
+                            <span style={{ fontSize:8, color:"#5a5248" }}>{typeLabels[item.type]}</span>
                           </div>
-                          <div style={{ fontSize:9, color:"#555", lineHeight:1.4 }}>
+                          <div style={{ fontSize:9, color:"#6a6058", lineHeight:1.4 }}>
                             {item.desc}
                             {isWeapon && WEAPON_STYLES[item.id] ? <span style={{color:"#c8a882"}}> · +{WEAPON_STYLES[item.id].bonusPct}% к памяти</span> : null}
                           </div>
-                          {isWeapon && <div style={{ fontSize:7, color:"#333", marginTop:3, letterSpacing:1 }}>⚔ Надевается во вкладке БРОНЯ</div>}
+                          {isWeapon && <div style={{ fontSize:7, color:"#4a4438", marginTop:3, letterSpacing:1 }}>⚔ Надевается во вкладке БРОНЯ</div>}
                         </div>
                         {(isEquipped || weaponEquipped) && <span style={{ color:rc, fontSize:10, letterSpacing:1 }}>◈</span>}
                       </div>
@@ -2217,25 +2251,25 @@ export default function App() {
               )}
 
               {inventory.length === 0 && (
-                <div style={{ textAlign:"center", padding:40, color:"#1a1a1a" }}>
+                <div style={{ textAlign:"center", padding:40, color:"#221f1a" }}>
                   <div style={{ fontSize:32, marginBottom:10 }}>✦</div>
                   <div style={{ fontSize:9, letterSpacing:2 }}>АРХИВ ПУСТ</div>
-                  <div style={{ fontSize:9, color:"#111", marginTop:6 }}>Выполняй миссии, чтобы собрать фрагменты</div>
+                  <div style={{ fontSize:9, color:"#2a2520", marginTop:6 }}>Выполняй миссии, чтобы собрать фрагменты</div>
                 </div>
               )}
 
 
               {/* Gacha catalog */}
-              <div style={{ marginTop:16, padding:"14px 16px", border:"1px solid #111" }}>
-                <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:12 }}>ЧТО МОЖНО ПОЛУЧИТЬ</div>
+              <div style={{ marginTop:16, padding:"14px 16px", border:"1px solid #1e1c18" }}>
+                <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:12 }}>ЧТО МОЖНО ПОЛУЧИТЬ</div>
                 {["title","weapon","color","lore","equipment"].map(type => {
                   const labels = { title:"ТИТУЛЫ", weapon:"ОРУЖИЕ", color:"ЦВЕТОВЫЕ СХЕМЫ", lore:"ЛОР-ФАЙЛЫ", equipment:"СНАРЯЖЕНИЕ" };
                   const descs  = { title:"Отображаются под именем персонажа", weapon:"Влияют на стиль миссий и дают бонус к памяти", color:"Меняют цвет акцента всего интерфейса", lore:"Цитаты и факты из вселенной NieR:Automata", equipment:"Броня, шлемы, перчатки, поножи, оружие — по градации редкости" };
                   const items  = type === "equipment" ? EQUIPMENT_POOL : GACHA_POOL.filter(i => i.type === type);
                   return (
                     <div key={type} style={{ marginBottom:14 }}>
-                      <div style={{ fontSize:9, color:"#888", letterSpacing:2, marginBottom:4 }}>{labels[type]}</div>
-                      <div style={{ fontSize:9, color:"#444", marginBottom:6 }}>{descs[type]}</div>
+                      <div style={{ fontSize:9, color:"#9a9088", letterSpacing:2, marginBottom:4 }}>{labels[type]}</div>
+                      <div style={{ fontSize:9, color:"#5a5248", marginBottom:6 }}>{descs[type]}</div>
                       <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                         {items.map(item => (
                           <span key={item.id} style={{ fontSize:8, color:RARITY_COLORS[item.rarity], border:"1px solid "+RARITY_COLORS[item.rarity]+"55", background:RARITY_COLORS[item.rarity]+"11", padding:"2px 7px", letterSpacing:1 }}>
@@ -2249,10 +2283,10 @@ export default function App() {
               </div>
 
               {/* Rarity info */}
-              <div style={{ marginTop:16, padding:"12px 14px", border:"1px solid #111" }}>
-                <div style={{ fontSize:8, letterSpacing:3, color:"#333", marginBottom:10 }}>ВЕРОЯТНОСТИ ИЗВЛЕЧЕНИЯ</div>
+              <div style={{ marginTop:16, padding:"12px 14px", border:"1px solid #1e1c18" }}>
+                <div style={{ fontSize:8, letterSpacing:3, color:"#4a4438", marginBottom:10 }}>ВЕРОЯТНОСТИ ИЗВЛЕЧЕНИЯ</div>
                 {Object.entries(RARITY_WEIGHTS).map(([r, w]) => (
-                  <div key={r} style={{ display:"flex", justifyContent:"space-between", fontSize:9, marginBottom:5, color:"#444" }}>
+                  <div key={r} style={{ display:"flex", justifyContent:"space-between", fontSize:9, marginBottom:5, color:"#5a5248" }}>
                     <span style={{ color: RARITY_COLORS[r] }}>{r.toUpperCase()}</span>
                     <span>{w}%</span>
                   </div>
@@ -2265,26 +2299,26 @@ export default function App() {
           {tab === "log" && (
             <div>
               {/* Daily lore */}
-              <div style={{ marginBottom:20, padding:"14px 16px", border:"1px solid #1a1a1a", borderLeft:"2px solid "+A+"44" }}>
-                <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:10 }}>◈ ДАННЫЕ ДНЯ</div>
-                <div style={{ fontSize:11, color:"#555", fontStyle:"italic", lineHeight:1.8 }}>
+              <div style={{ marginBottom:20, padding:"14px 16px", border:"1px solid #221f1a", borderLeft:"2px solid "+A+"44" }}>
+                <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:10 }}>◈ ДАННЫЕ ДНЯ</div>
+                <div style={{ fontSize:11, color:"#6a6058", fontStyle:"italic", lineHeight:1.8 }}>
                   {LORE_DB[Math.floor((Date.now() / 86400000)) % LORE_DB.length]}
                 </div>
               </div>
               {log.length === 0 && (
-                <div style={{ textAlign:"center", padding:40, color:"#1a1a1a" }}>
+                <div style={{ textAlign:"center", padding:40, color:"#221f1a" }}>
                   <div style={{ fontSize:28, marginBottom:8 }}>◇</div>
                   <div style={{ fontSize:9, letterSpacing:2 }}>ЖУРНАЛ ПУСТ</div>
                 </div>
               )}
               {log.map((e, i) => (
-                <div key={i} style={{ paddingLeft:12, marginBottom:14, borderLeft:"1px solid "+(i===0?A:"#1a1a1a") }}>
-                  <div style={{ fontSize:8, color:"#333", marginBottom:2, letterSpacing:1 }}>{e.time}</div>
-                  <div style={{ fontSize:10, color:i===0?"#888":"#444" }}>{e.text}</div>
+                <div key={i} style={{ paddingLeft:12, marginBottom:14, borderLeft:"1px solid "+(i===0?A:"#221f1a") }}>
+                  <div style={{ fontSize:8, color:"#4a4438", marginBottom:2, letterSpacing:1 }}>{e.time}</div>
+                  <div style={{ fontSize:10, color:i===0?"#9a9088":"#5a5248" }}>{e.text}</div>
                   {e.report && (
-                    <div style={{ marginTop:6, padding:"6px 10px", background:"#0a0a0a", border:"1px solid #1a1a1a", borderLeft:"1px solid "+A+"44" }}>
-                      <div style={{ fontSize:8, color:"#444", letterSpacing:2, marginBottom:3 }}>ОТЧЁТ:</div>
-                      <div style={{ fontSize:9, color:"#555", lineHeight:1.7 }}>{e.report}</div>
+                    <div style={{ marginTop:6, padding:"6px 10px", background:"#181614", border:"1px solid #221f1a", borderLeft:"1px solid "+A+"44" }}>
+                      <div style={{ fontSize:8, color:"#5a5248", letterSpacing:2, marginBottom:3 }}>ОТЧЁТ:</div>
+                      <div style={{ fontSize:9, color:"#6a6058", lineHeight:1.7 }}>{e.report}</div>
                     </div>
                   )}
                 </div>

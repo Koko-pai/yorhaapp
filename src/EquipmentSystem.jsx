@@ -152,7 +152,7 @@ function calcStats(item) {
 }
 
 const EQUIPMENT_SETS = {
-  yorha:   { name:"YoRHa",   color:"#8888cc", bonus2:{ missions:"+10% MEM за миссии", desc:"Слабый сигнал командования усиливает протокол." },        bonus4:{ missions:"+25% MEM + 1 ◈ за миссии", desc:"Четыре модуля YoRHa синхронизированы. Полный протокол активирован." } },
+  yorha:   { name:"YoRHa",   color:"#a09080", bonus2:{ missions:"+10% MEM за миссии", desc:"Слабый сигнал командования усиливает протокол." },        bonus4:{ missions:"+25% MEM + 1 ◈ за миссии", desc:"Четыре модуля YoRHa синхронизированы. Полный протокол активирован." } },
   machine: { name:"Машины",  color:"#cc6644", bonus2:{ missions:"+10% MEM за миссии", desc:"Фрагменты машинного интеллекта резонируют." },              bonus4:{ missions:"+25% MEM + 1 ◈ за миссии", desc:"Машинная сеть установила контакт. Цикл замкнулся." } },
   ancient: { name:"Древние", color:"#c8a882", bonus2:{ missions:"+10% MEM за миссии", desc:"Реликвии прошлого пробуждают скрытую память." },            bonus4:{ missions:"+25% MEM + 1 ◈ за миссии", desc:"Четыре реликвии объединены. Древний протокол восстановлен." } },
 };
@@ -316,7 +316,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
 
   return (
     <div>
-      <div style={{ fontSize:8, letterSpacing:3, color:"#444", marginBottom:12 }}>СНАРЯЖЕНИЕ · МОДУЛЬНАЯ ПЛАТА</div>
+      <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:12 }}>СНАРЯЖЕНИЕ · МОДУЛЬНАЯ ПЛАТА</div>
       <style>{`@keyframes chipInsert{0%{opacity:0;transform:scale(0.8)}60%{opacity:1;transform:scale(1.1)}100%{transform:scale(1)}}`}</style>
 
       {/* Art — full width, tall */}
@@ -351,21 +351,21 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
           ];
           return (
             <div key={slot} style={{ position:"absolute", zIndex:10, top:pos.top, [isLeft?"left":"right"]:0, display:"flex", flexDirection:isLeft?"row":"row-reverse", alignItems:"center", gap:3 }}>
-              <div style={{ width:30, height:1, background:eq?accent:"#2a2a2a", transition:"background 0.4s", boxShadow:eq?"0 0 5px "+accent:"none" }}/>
+              <div style={{ width:30, height:1, background:eq?accent:"#302b24", transition:"background 0.4s", boxShadow:eq?"0 0 5px "+accent:"none" }}/>
               {/* Кликабельный квадратик */}
               <div
                 onClick={e => { e.stopPropagation(); setOpenSlot(isOpen ? null : slot); }}
-                style={{ width:26, height:26, background:isOpen?accent+"44":eq?accent+"22":"#0a0a0a", border:"1px solid "+(isOpen?accent:eq?accent:"#2a2a2a"), boxShadow:isOpen?"0 0 12px "+accent+"cc":eq?"0 0 8px "+accent+"88":"none", transition:"all 0.25s", animation:insertSlot===slot?"chipInsert 0.5s ease":"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:isOpen?accent:eq?accent:"#444" }}>
+                style={{ width:26, height:26, background:isOpen?accent+"44":eq?accent+"22":"#181614", border:"1px solid "+(isOpen?accent:eq?accent:"#302b24"), boxShadow:isOpen?"0 0 12px "+accent+"cc":eq?"0 0 8px "+accent+"88":"none", transition:"all 0.25s", animation:insertSlot===slot?"chipInsert 0.5s ease":"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:isOpen?accent:eq?accent:"#5a5248" }}>
                 {eq ? eq.icon : "+"}
               </div>
               {/* Popup меню */}
               {isOpen && (
-                <div style={{ position:"absolute", [isLeft?"left":"right"]:22, top:"-8px", zIndex:20, background:"#050505", border:"1px solid "+accent+"44", borderTop:"2px solid "+accent, minWidth:200, maxWidth:260, boxShadow:"0 4px 24px #000a", padding:10 }}>
+                <div style={{ position:"absolute", [isLeft?"left":"right"]:22, top:"-8px", zIndex:20, background:"#111009", border:"1px solid "+accent+"44", borderTop:"2px solid "+accent, minWidth:200, maxWidth:260, boxShadow:"0 4px 24px #000a", padding:10 }}>
                   {/* Угловой декор */}
                   <div style={{ position:"absolute", top:0, [isLeft?"right":"left"]:0, width:10, height:10, borderBottom:"1px solid "+accent+"44", [isLeft?"borderLeft":"borderRight"]:"1px solid "+accent+"44" }}/>
                   <div style={{ fontSize:7, letterSpacing:3, color:accent, marginBottom:8, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <span>{SLOT_LABELS[slot]}</span>
-                    <span onClick={e=>{e.stopPropagation();setOpenSlot(null);}} style={{ cursor:"pointer", color:"#444", fontSize:10 }}>✕</span>
+                    <span onClick={e=>{e.stopPropagation();setOpenSlot(null);}} style={{ cursor:"pointer", color:"#5a5248", fontSize:10 }}>✕</span>
                   </div>
                   {/* Снять */}
                   {eq && (
@@ -378,14 +378,14 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                   )}
                   {/* Список предметов */}
                   {slotItems.length === 0 ? (
-                    <div style={{ padding:"10px 8px", fontSize:8, color:"#333", textAlign:"center", letterSpacing:1 }}>
+                    <div style={{ padding:"10px 8px", fontSize:8, color:"#4a4438", textAlign:"center", letterSpacing:1 }}>
                       — НЕТ ПРЕДМЕТОВ —<br/>
-                      <span style={{ fontSize:7, color:"#222" }}>Получите снаряжение в Архиве</span>
+                      <span style={{ fontSize:7, color:"#3a342e" }}>Получите снаряжение в Архиве</span>
                     </div>
                   ) : (
                     <div style={{ maxHeight:200, overflowY:"auto" }}>
                       {slotItems.map(item => {
-                        const rc = rarityColors[item.rarity] || "#888";
+                        const rc = rarityColors[item.rarity] || "#9a9088";
                         const isEq = gear[slot] === item.id;
                         const setDef = item.set ? EQUIPMENT_SETS[item.set] : null;
                         return (
@@ -393,11 +393,11 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                             onClick={e => { e.stopPropagation(); if (!isEq) { equipItem(item); } setOpenSlot(null); }}
                             onMouseEnter={e => { if (!isEq) e.currentTarget.style.background = rc+"11"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = isEq ? rc+"18" : "transparent"; }}
-                            style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 8px", marginBottom:3, border:"1px solid "+(isEq?rc+"55":"#111"), background:isEq?rc+"18":"transparent", cursor:isEq?"default":"pointer", transition:"all 0.15s" }}>
+                            style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 8px", marginBottom:3, border:"1px solid "+(isEq?rc+"55":"#1e1c18"), background:isEq?rc+"18":"transparent", cursor:isEq?"default":"pointer", transition:"all 0.15s" }}>
                             <span style={{ fontSize:14, color:rc, flexShrink:0 }}>{item.icon}</span>
                             <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontSize:8, color:isEq?"#e8e0d0":rc, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.name}</div>
-                              <div style={{ fontSize:7, color:"#444", display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
+                              <div style={{ fontSize:8, color:isEq?"#d8d0c4":rc, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.name}</div>
+                              <div style={{ fontSize:7, color:"#5a5248", display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
                                 <span style={{ color:rc }}>{item.rarity?.toUpperCase()}</span>
                                 {setDef && <span style={{ color:setDef.color }}>· {setDef.name}</span>}
                                 {(() => {
@@ -407,7 +407,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                                   const pv = cs[r.primary];
                                   const pr = STAT_RANGES[r.primary];
                                   if (!pr) return null;
-                                  return <span style={{ color:"#888" }}>· {pr.label} {pv}{pr.suffix} <span style={{color:"#444"}}>Lv.{lvl}</span></span>;
+                                  return <span style={{ color:"#9a9088" }}>· {pr.label} {pv}{pr.suffix} <span style={{color:"#5a5248"}}>Lv.{lvl}</span></span>;
                                 })()}
                               </div>
                             </div>
@@ -430,24 +430,24 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
       <div style={{ display:"flex", gap:4, marginBottom:14, flexWrap:"wrap" }}>
         {EQUIP_SLOTS.map(slot => {
           const item = equippedItems[slot];
-          const rc   = item ? (rarityColors[item.rarity] || "#888") : "#1a1a1a";
+          const rc   = item ? (rarityColors[item.rarity] || "#9a9088") : "#221f1a";
           const isIns = insertSlot === slot;
           return (
-            <div key={slot} style={{ flex:"1 1 80px", minWidth:80, border:"1px solid "+(item?rc+"44":"#111"), borderTop:"2px solid "+(item?rc:"#1a1a1a"), background:"#050505", padding:"6px 8px", transition:"all 0.3s", boxShadow:isIns?"0 0 10px "+rc+"55":"none", animation:isIns?"chipInsert 0.5s ease":"none" }}>
-              <div style={{ fontSize:7, color:"#333", letterSpacing:1, marginBottom:3 }}>{SLOT_ICONS[slot]} {SLOT_LABELS[slot]}</div>
+            <div key={slot} style={{ flex:"1 1 80px", minWidth:80, border:"1px solid "+(item?rc+"44":"#1e1c18"), borderTop:"2px solid "+(item?rc:"#221f1a"), background:"#111009", padding:"6px 8px", transition:"all 0.3s", boxShadow:isIns?"0 0 10px "+rc+"55":"none", animation:isIns?"chipInsert 0.5s ease":"none" }}>
+              <div style={{ fontSize:7, color:"#4a4438", letterSpacing:1, marginBottom:3 }}>{SLOT_ICONS[slot]} {SLOT_LABELS[slot]}</div>
               {item ? (
                 <div style={{ display:"flex", alignItems:"center", gap:4 }}>
                   <span style={{ fontSize:10, color:rc }}>{item.icon}</span>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:8, color:rc, fontWeight:700, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.name}</div>
-                    <div style={{ fontSize:7, color:"#333" }}>{item.rarity?.toUpperCase()}</div>
+                    <div style={{ fontSize:7, color:"#4a4438" }}>{item.rarity?.toUpperCase()}</div>
                   </div>
                   <button onClick={() => setSelectedItem(item)}
-                    onMouseEnter={e=>{e.target.style.color=rc;}} onMouseLeave={e=>{e.target.style.color="#333";}}
-                    style={{ background:"none", border:"none", color:"#333", fontSize:9, cursor:"pointer", padding:0, transition:"color 0.2s" }}>ⓘ</button>
+                    onMouseEnter={e=>{e.target.style.color=rc;}} onMouseLeave={e=>{e.target.style.color="#4a4438";}}
+                    style={{ background:"none", border:"none", color:"#4a4438", fontSize:9, cursor:"pointer", padding:0, transition:"color 0.2s" }}>ⓘ</button>
                 </div>
               ) : (
-                <div style={{ fontSize:7, color:"#1a1a1a", letterSpacing:1 }}>— ПУСТО —</div>
+                <div style={{ fontSize:7, color:"#221f1a", letterSpacing:1 }}>— ПУСТО —</div>
               )}
             </div>
           );
@@ -457,14 +457,14 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
       {/* Set bonuses */}
       {setBonuses.length > 0 && (
         <div style={{ marginBottom:14 }}>
-          <div style={{ fontSize:7, letterSpacing:3, color:"#444", marginBottom:8 }}>АКТИВНЫЕ СЕТ-БОНУСЫ</div>
+          <div style={{ fontSize:7, letterSpacing:3, color:"#5a5248", marginBottom:8 }}>АКТИВНЫЕ СЕТ-БОНУСЫ</div>
           {setBonuses.map((b, i) => (
-            <div key={i} style={{ padding:"10px 12px", border:"1px solid "+b.color+"33", borderLeft:"2px solid "+b.color, background:"#050505", marginBottom:6 }}>
+            <div key={i} style={{ padding:"10px 12px", border:"1px solid "+b.color+"33", borderLeft:"2px solid "+b.color, background:"#111009", marginBottom:6 }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
                 <div style={{ fontSize:9, color:b.color, fontWeight:700, letterSpacing:1 }}>{b.setName} · {b.count}/5</div>
-                <div style={{ fontSize:7, color:b.level==="full"?"#ffcc00":"#888", letterSpacing:1 }}>{b.level==="full"?"◈ ПОЛНЫЙ":"◇ МАЛЫЙ"}</div>
+                <div style={{ fontSize:7, color:b.level==="full"?"#ffcc00":"#9a9088", letterSpacing:1 }}>{b.level==="full"?"◈ ПОЛНЫЙ":"◇ МАЛЫЙ"}</div>
               </div>
-              <div style={{ fontSize:8, color:"#555" }}>{b.missions}</div>
+              <div style={{ fontSize:8, color:"#6a6058" }}>{b.missions}</div>
               <div style={{ fontSize:8, color:"#3a3a3a", marginTop:2, fontStyle:"italic" }}>{b.desc}</div>
             </div>
           ))}
@@ -473,12 +473,12 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
 
       {/* Inventory */}
       <div style={{ marginBottom:10 }}>
-        <div style={{ fontSize:7, letterSpacing:3, color:"#444", marginBottom:8 }}>ИНВЕНТАРЬ — СНАРЯЖЕНИЕ{ownedEquipment.length > 0 && <span style={{ color:"#555" }}> [{ownedEquipment.length}]</span>}</div>
+        <div style={{ fontSize:7, letterSpacing:3, color:"#5a5248", marginBottom:8 }}>ИНВЕНТАРЬ — СНАРЯЖЕНИЕ{ownedEquipment.length > 0 && <span style={{ color:"#6a6058" }}> [{ownedEquipment.length}]</span>}</div>
         {ownedEquipment.length === 0 ? (
           <div style={{ padding:"24px 0", textAlign:"center", border:"1px solid #0d0d0d" }}>
-            <div style={{ fontSize:20, marginBottom:8, color:"#1a1a1a" }}>◈</div>
-            <div style={{ fontSize:8, color:"#1a1a1a", letterSpacing:2 }}>СНАРЯЖЕНИЕ НЕ ПОЛУЧЕНО</div>
-            <div style={{ fontSize:8, color:"#111", marginTop:4, lineHeight:1.8 }}>Выпадает из Архива по обычной градации редкости</div>
+            <div style={{ fontSize:20, marginBottom:8, color:"#221f1a" }}>◈</div>
+            <div style={{ fontSize:8, color:"#221f1a", letterSpacing:2 }}>СНАРЯЖЕНИЕ НЕ ПОЛУЧЕНО</div>
+            <div style={{ fontSize:8, color:"#2a2520", marginTop:4, lineHeight:1.8 }}>Выпадает из Архива по обычной градации редкости</div>
           </div>
         ) : (
           EQUIP_SLOTS.map(slot => {
@@ -486,16 +486,16 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
             if (!slotItems.length) return null;
             return (
               <div key={slot} style={{ marginBottom:10 }}>
-                <div style={{ fontSize:7, letterSpacing:2, color:"#333", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ fontSize:7, letterSpacing:2, color:"#4a4438", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>
                   <span>{SLOT_ICONS[slot]}</span><span>{SLOT_LABELS[slot]}</span>
                 </div>
                 {slotItems.map(item => {
-                  const rc = rarityColors[item.rarity] || "#888";
+                  const rc = rarityColors[item.rarity] || "#9a9088";
                   const isEquipped = gear[item.slot] === item.id;
                   const setDef = item.set ? EQUIPMENT_SETS[item.set] : null;
                   return (
                     <div key={item.id} onClick={() => isEquipped ? setSelectedItem(item) : equipItem(item)}
-                      style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", marginBottom:5, border:"1px solid "+(isEquipped?rc+"55":"#111"), borderLeft:"2px solid "+(isEquipped?rc:"#1a1a1a"), background:isEquipped?"#080808":"#030303", cursor:"pointer", transition:"all 0.2s" }}>
+                      style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", marginBottom:5, border:"1px solid "+(isEquipped?rc+"55":"#1e1c18"), borderLeft:"2px solid "+(isEquipped?rc:"#221f1a"), background:isEquipped?"#141210":"#0d0b09", cursor:"pointer", transition:"all 0.2s" }}>
                       <span style={{ fontSize:16, color:rc }}>{item.icon}</span>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:2, flexWrap:"wrap" }}>
@@ -503,12 +503,12 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                           <span style={{ fontSize:7, color:rc, letterSpacing:1 }}>{item.rarity.toUpperCase()}</span>
                           {setDef && <span style={{ fontSize:7, color:setDef.color, letterSpacing:1 }}>{setDef.name}</span>}
                         </div>
-                        <div style={{ fontSize:8, color:"#555", lineHeight:1.5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.desc}</div>
+                        <div style={{ fontSize:8, color:"#6a6058", lineHeight:1.5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.desc}</div>
                         {slot === "weapon" && item.missionBonusPct && <div style={{ fontSize:7, color:"#c8a882", marginTop:1 }}>+{item.missionBonusPct}% MEM за миссии</div>}
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
-                        {isEquipped ? <div style={{ fontSize:8, color:rc, letterSpacing:1 }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#444" }}>НАДЕТЬ</div>}
-                        <div style={{ fontSize:7, color:"#555", marginTop:2 }}>Lv.{(S.gearLevels||{})[slot] || 1}</div>
+                        {isEquipped ? <div style={{ fontSize:8, color:rc, letterSpacing:1 }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#5a5248" }}>НАДЕТЬ</div>}
+                        <div style={{ fontSize:7, color:"#6a6058", marginTop:2 }}>Lv.{(S.gearLevels||{})[slot] || 1}</div>
                       </div>
                     </div>
                   );
@@ -525,9 +525,9 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
         if (!lw.length) return null;
         return (
           <div style={{ marginBottom:10 }}>
-            <div style={{ fontSize:7, letterSpacing:2, color:"#333", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>⚔ ОРУЖИЕ (АРХИВ)</div>
+            <div style={{ fontSize:7, letterSpacing:2, color:"#4a4438", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>⚔ ОРУЖИЕ (АРХИВ)</div>
             {lw.map(item => {
-              const rc = rarityColors[item.rarity] || "#888";
+              const rc = rarityColors[item.rarity] || "#9a9088";
               const isEquipped = gear["weapon"] === item.id || (!gear["weapon"] && S.equipped?.weapon === item.id);
               const ws = weaponStyles[item.id];
               return (
@@ -537,18 +537,18 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                     setS(p => ({ ...p, gear:{ ...(p.gear||{}), weapon:item.id }, equipped:{ ...(p.equipped||{}), weapon:item.id } }));
                     showDialogue("equipItem"); toastFn("ОРУЖИЕ УСТАНОВЛЕНО ◈");
                   }
-                }} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", marginBottom:5, border:"1px solid "+(isEquipped?rc+"55":"#111"), borderLeft:"2px solid "+(isEquipped?rc:"#1a1a1a"), background:isEquipped?"#080808":"#030303", cursor:"pointer", transition:"all 0.2s" }}>
+                }} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", marginBottom:5, border:"1px solid "+(isEquipped?rc+"55":"#1e1c18"), borderLeft:"2px solid "+(isEquipped?rc:"#221f1a"), background:isEquipped?"#141210":"#0d0b09", cursor:"pointer", transition:"all 0.2s" }}>
                   <span style={{ fontSize:16, color:rc }}>{item.icon}</span>
                   <div style={{ flex:1 }}>
                     <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:2 }}>
                       <span style={{ fontSize:9, color:"#c8c0b8", fontWeight:700 }}>{item.name}</span>
                       <span style={{ fontSize:7, color:rc, letterSpacing:1 }}>{item.rarity.toUpperCase()}</span>
                     </div>
-                    <div style={{ fontSize:8, color:"#555" }}>{item.desc}</div>
+                    <div style={{ fontSize:8, color:"#6a6058" }}>{item.desc}</div>
                     {ws && <div style={{ fontSize:7, color:"#c8a882", marginTop:1 }}>+{ws.bonusPct}% MEM за миссии</div>}
                   </div>
                   <div style={{ flexShrink:0 }}>
-                    {isEquipped ? <div style={{ fontSize:8, color:rc }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#444" }}>НАДЕТЬ</div>}
+                    {isEquipped ? <div style={{ fontSize:8, color:rc }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#5a5248" }}>НАДЕТЬ</div>}
                   </div>
                 </div>
               );
@@ -558,8 +558,8 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
       })()}
 
       {/* Set catalog */}
-      <div style={{ marginTop:16, padding:"14px 16px", border:"1px solid #111" }}>
-        <div style={{ fontSize:7, letterSpacing:3, color:"#444", marginBottom:12 }}>КАТАЛОГ СЕРИЙ</div>
+      <div style={{ marginTop:16, padding:"14px 16px", border:"1px solid #1e1c18" }}>
+        <div style={{ fontSize:7, letterSpacing:3, color:"#5a5248", marginBottom:12 }}>КАТАЛОГ СЕРИЙ</div>
         {Object.entries(EQUIPMENT_SETS).map(([setId, setDef]) => {
           const setItems      = EQUIPMENT_POOL.filter(e => e.set === setId);
           const ownedCount    = setItems.filter(e => inArrFn(inventory, e.id)).length;
@@ -568,19 +568,19 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
             <div key={setId} style={{ marginBottom:16, paddingBottom:16, borderBottom:"1px solid #0d0d0d" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
                 <div style={{ fontSize:10, color:setDef.color, fontWeight:700, letterSpacing:2 }}>{setDef.name.toUpperCase()}</div>
-                <div style={{ fontSize:8, color:"#444" }}>{equippedCount}/5 надет · {ownedCount}/5 есть</div>
+                <div style={{ fontSize:8, color:"#5a5248" }}>{equippedCount}/5 надет · {ownedCount}/5 есть</div>
               </div>
               <div style={{ marginBottom:8 }}>
-                <div style={{ fontSize:7, color:"#555", marginBottom:2 }}>◇ 2 предмета: <span style={{ color:"#888" }}>{setDef.bonus2.missions}</span></div>
-                <div style={{ fontSize:7, color:"#555" }}>◈ 4 предмета: <span style={{ color:setDef.color }}>{setDef.bonus4.missions}</span></div>
+                <div style={{ fontSize:7, color:"#6a6058", marginBottom:2 }}>◇ 2 предмета: <span style={{ color:"#9a9088" }}>{setDef.bonus2.missions}</span></div>
+                <div style={{ fontSize:7, color:"#6a6058" }}>◈ 4 предмета: <span style={{ color:setDef.color }}>{setDef.bonus4.missions}</span></div>
               </div>
               <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
                 {setItems.map(item => {
                   const owned    = inArrFn(inventory, item.id);
                   const equipped = gear[item.slot] === item.id;
-                  const rc       = rarityColors[item.rarity] || "#888";
+                  const rc       = rarityColors[item.rarity] || "#9a9088";
                   return (
-                    <div key={item.id} style={{ fontSize:8, padding:"3px 8px", border:"1px solid "+(equipped?rc:owned?rc+"44":"#111"), color:equipped?rc:owned?rc+"aa":"#333", background:equipped?rc+"11":"#050505" }}>
+                    <div key={item.id} style={{ fontSize:8, padding:"3px 8px", border:"1px solid "+(equipped?rc:owned?rc+"44":"#1e1c18"), color:equipped?rc:owned?rc+"aa":"#4a4438", background:equipped?rc+"11":"#111009" }}>
                       {item.icon} {SLOT_LABELS[item.slot]}{equipped && " ◈"}
                     </div>
                   );
@@ -594,22 +594,22 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
       {/* Item detail popup */}
       {selectedItem && (
         <div style={{ position:"fixed", inset:0, zIndex:9989, background:"rgba(0,0,0,0.92)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }} onClick={() => setSelectedItem(null)}>
-          <div style={{ background:"#080808", border:"1px solid #222", borderTop:"2px solid "+(rarityColors[selectedItem.rarity]||"#888"), maxWidth:380, width:"100%", padding:24, position:"relative" }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedItem(null)} style={{ position:"absolute", top:12, right:12, background:"none", border:"none", color:"#444", fontSize:18, cursor:"pointer" }}>✕</button>
-            <div style={{ fontSize:7, letterSpacing:3, color:"#555", marginBottom:4 }}>ДАННЫЕ МОДУЛЯ</div>
+          <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+(rarityColors[selectedItem.rarity]||"#9a9088"), maxWidth:380, width:"100%", padding:24, position:"relative" }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedItem(null)} style={{ position:"absolute", top:12, right:12, background:"none", border:"none", color:"#5a5248", fontSize:18, cursor:"pointer" }}>✕</button>
+            <div style={{ fontSize:7, letterSpacing:3, color:"#6a6058", marginBottom:4 }}>ДАННЫЕ МОДУЛЯ</div>
             <div style={{ display:"flex", gap:12, alignItems:"flex-start", marginBottom:16 }}>
-              <div style={{ fontSize:32, color:rarityColors[selectedItem.rarity]||"#888" }}>{selectedItem.icon}</div>
+              <div style={{ fontSize:32, color:rarityColors[selectedItem.rarity]||"#9a9088" }}>{selectedItem.icon}</div>
               <div>
-                <div style={{ fontSize:13, color:"#e8e0d0", fontWeight:700, letterSpacing:2, marginBottom:4 }}>{selectedItem.name}</div>
-                <div style={{ fontSize:8, color:rarityColors[selectedItem.rarity]||"#888", letterSpacing:2 }}>{selectedItem.rarity?.toUpperCase()} · {SLOT_LABELS[selectedItem.slot]}</div>
-                {selectedItem.set && <div style={{ fontSize:8, color:EQUIPMENT_SETS[selectedItem.set]?.color||"#888", marginTop:2 }}>Серия: {EQUIPMENT_SETS[selectedItem.set]?.name}</div>}
+                <div style={{ fontSize:13, color:"#d8d0c4", fontWeight:700, letterSpacing:2, marginBottom:4 }}>{selectedItem.name}</div>
+                <div style={{ fontSize:8, color:rarityColors[selectedItem.rarity]||"#9a9088", letterSpacing:2 }}>{selectedItem.rarity?.toUpperCase()} · {SLOT_LABELS[selectedItem.slot]}</div>
+                {selectedItem.set && <div style={{ fontSize:8, color:EQUIPMENT_SETS[selectedItem.set]?.color||"#9a9088", marginTop:2 }}>Серия: {EQUIPMENT_SETS[selectedItem.set]?.name}</div>}
               </div>
             </div>
-            <div style={{ fontSize:9, color:"#666", lineHeight:1.8, marginBottom:12 }}>{selectedItem.desc}</div>
+            <div style={{ fontSize:9, color:"#7a7068", lineHeight:1.8, marginBottom:12 }}>{selectedItem.desc}</div>
             {selectedItem.lore && (
-              <div style={{ padding:"10px 12px", border:"1px solid #111", borderLeft:"2px solid "+(rarityColors[selectedItem.rarity]||"#444")+"44", marginBottom:12 }}>
-                <div style={{ fontSize:7, letterSpacing:2, color:"#444", marginBottom:4 }}>ЛОР-ФАЙЛ</div>
-                <div style={{ fontSize:9, color:"#555", fontStyle:"italic", lineHeight:1.8 }}>{selectedItem.lore}</div>
+              <div style={{ padding:"10px 12px", border:"1px solid #1e1c18", borderLeft:"2px solid "+(rarityColors[selectedItem.rarity]||"#5a5248")+"44", marginBottom:12 }}>
+                <div style={{ fontSize:7, letterSpacing:2, color:"#5a5248", marginBottom:4 }}>ЛОР-ФАЙЛ</div>
+                <div style={{ fontSize:9, color:"#6a6058", fontStyle:"italic", lineHeight:1.8 }}>{selectedItem.lore}</div>
               </div>
             )}
             {(() => {
@@ -623,33 +623,33 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                 { key:"critdmg", val: cs.critdmg,  label:"КРИТ.УРОН",  suffix:"%" },
               ].filter(s => s.val > 0);
               return (
-                <div style={{ padding:"10px 12px", border:"1px solid #111", marginBottom:12 }}>
-                  <div style={{ fontSize:7, letterSpacing:2, color:"#444", marginBottom:8 }}>ХАРАКТЕРИСТИКИ</div>
+                <div style={{ padding:"10px 12px", border:"1px solid #1e1c18", marginBottom:12 }}>
+                  <div style={{ fontSize:7, letterSpacing:2, color:"#5a5248", marginBottom:8 }}>ХАРАКТЕРИСТИКИ</div>
                   {allStats.map(({ key, val, label, suffix }) => {
                     const isPrimary = rolled.primary === key;
                     return (
                       <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                           {isPrimary && <span style={{ fontSize:8, color:accent }}>◆</span>}
-                          {!isPrimary && <span style={{ fontSize:8, color:"#2a2a2a" }}>·</span>}
-                          <span style={{ fontSize:8, color: isPrimary ? "#888" : "#555", letterSpacing:1 }}>{label}</span>
+                          {!isPrimary && <span style={{ fontSize:8, color:"#302b24" }}>·</span>}
+                          <span style={{ fontSize:8, color: isPrimary ? "#9a9088" : "#6a6058", letterSpacing:1 }}>{label}</span>
                         </div>
-                        <span style={{ fontSize: isPrimary ? 10 : 8, fontWeight: isPrimary ? 700 : 400, color: isPrimary ? accent : "#666" }}>
+                        <span style={{ fontSize: isPrimary ? 10 : 8, fontWeight: isPrimary ? 700 : 400, color: isPrimary ? accent : "#7a7068" }}>
                           {val}{suffix}
                         </span>
                       </div>
                     );
                   })}
                   {selectedItem.slot === "weapon" && (selectedItem.missionBonusPct || weaponStyles[selectedItem.id]?.bonusPct) > 0 && (
-                    <div style={{ marginTop:6, paddingTop:6, borderTop:"1px solid #111", fontSize:8, color:"#c8a882" }}>
+                    <div style={{ marginTop:6, paddingTop:6, borderTop:"1px solid #1e1c18", fontSize:8, color:"#c8a882" }}>
                       +{selectedItem.missionBonusPct || weaponStyles[selectedItem.id]?.bonusPct}% MEM за миссии
                     </div>
                   )}
                 </div>
               );
             })()}
-            <div style={{ padding:"8px 12px", border:"1px solid #111" }}>
-              <div style={{ fontSize:7, letterSpacing:2, color:"#444", marginBottom:6 }}>УЛУЧШЕНИЕ</div>
+            <div style={{ padding:"8px 12px", border:"1px solid #1e1c18" }}>
+              <div style={{ fontSize:7, letterSpacing:2, color:"#5a5248", marginBottom:6 }}>УЛУЧШЕНИЕ</div>
               {(() => {
               const slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
                 const lvl  = (S.gearLevels||{})[slot] || 1;
@@ -657,14 +657,14 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                 return (
                   <>
                     <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
-                      <div style={{ fontSize:8, color: maxed ? "#c8a882" : "#888" }}>Уровень: {lvl}/30{maxed?" ★":""}</div>
-                      <div style={{ flex:1, height:2, background:"#111" }}>
+                      <div style={{ fontSize:8, color: maxed ? "#c8a882" : "#9a9088" }}>Уровень: {lvl}/30{maxed?" ★":""}</div>
+                      <div style={{ flex:1, height:2, background:"#1a1814" }}>
                         <div style={{ height:"100%", width:((lvl-1)/29*100)+"%", background: maxed?"#c8a882":accent, transition:"width 0.4s" }}/>
                       </div>
                     </div>
                     {maxed
                       ? <div style={{ fontSize:7, color:"#c8a882", letterSpacing:1 }}>◆ МАКСИМАЛЬНЫЙ УРОВЕНЬ</div>
-                      : <div style={{ fontSize:7, color:"#555", lineHeight:1.6 }}>Материалы для улучшения — вкладка ⚡ БОЙ → АПГРЕЙД</div>
+                      : <div style={{ fontSize:7, color:"#6a6058", lineHeight:1.6 }}>Материалы для улучшения — вкладка ⚡ БОЙ → АПГРЕЙД</div>
                     }
                   </>
                 );

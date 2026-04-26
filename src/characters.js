@@ -18,8 +18,8 @@ export const CHARACTER_10H = {
 
   // ── Формы / скины ────────────────────────────────────
   forms: {
-    sentinel: { name: "SENTINEL SAVIOR", unlockFw: 1, accent: "#8888cc", desc: "Базовая боевая форма YoRHa No.10 Type H." },
-    abstract: { name: "ABSTRACT SAVIOR", unlockFw: 5, accent: "#44aaff", desc: "Улучшенная форма. Длинное пальто, расширенный арсенал." },
+    sentinel: { name: "SENTINEL SAVIOR", unlockFw: 1, accent: "#a09080", desc: "Базовая боевая форма YoRHa No.10 Type H." },
+    abstract: { name: "ABSTRACT SAVIOR", unlockFw: 5, accent: "#88aabb", desc: "Улучшенная форма. Длинное пальто, расширенный арсенал." },
     reborn:   { name: "REBORN WARDEN",   unlockFw: 9, accent: "#ffe0a0", desc: "Финальная форма. Белое облачение, реликвийное оружие." },
   },
 
@@ -76,7 +76,7 @@ export const CHARACTER_10H = {
       icon:     "◈",
       desc:     "Pod 006: лазерная решётка — 55% ATK всем врагам",
       cooldown: 7000,
-      color:    "#8888cc",
+      color:    "#a09080",
     },
     {
       // Протокол восстановления — суть Healer-типа.
