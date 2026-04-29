@@ -613,7 +613,8 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
               </div>
             )}
             {(() => {
-              const itemWithSlot = { ...selectedItem, slot: selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest") };
+              const _slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
+              const itemWithSlot = { ...selectedItem, slot: _slot, level: (S.gearLevels||{})[_slot] || 1 };
               const rolled  = rollItemStats(itemWithSlot);
               const cs      = calcStats(itemWithSlot);
               const allStats = [

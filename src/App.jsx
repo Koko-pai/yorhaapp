@@ -5,6 +5,7 @@ import { getMissionHint } from "./MISSION_HINTS.js";
 import BattleTab, { getDailyBattleMissions, getWaveDrops, MATERIALS, UPGRADE_COSTS, ABILITIES } from "./BattleMode.jsx";
 import EquipmentTab, { EQUIP_SLOTS, SLOT_LABELS, SLOT_ICONS, RARITY_STAT_MULT, STAT_RANGES, EQUIPMENT_SETS, EQUIPMENT_POOL, EQUIPMENT_WEAPON_STYLES, getStatScale, calcStats, rollItemStats, getEquippedItems, getSetBonuses, getSetMemMultiplier } from "./EquipmentSystem.jsx";
 import { CHARACTER_10H, getCharacterImg, getCharacterForm, getCharacterDialogue } from "./characters.js";
+import SimulationMode from "./SimulationMode.jsx";
 
 // ═══════════════════════════════════════════════════════
 // CONSTANTS
@@ -404,7 +405,7 @@ function ReportModal({ mission, accent, onConfirm, onCancel }) {
   );
 }
 
-function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, onLogic }) {
+function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, onLogic, onSimulation }) {
   const [h, setH] = useState(false);
   const tc = { "НИЗКАЯ":"#4a9", "СРЕДНЯЯ":"#ca7", "ВЫСОКАЯ":"#c44" };
   const c = tc[m.threat] || "#9a9088";
@@ -489,12 +490,20 @@ function MCard({ m, accent, onDone, onReroll, rerollsLeft, rerollBlocked, now, o
               РЕШИТЬ
             </button>
           ) : (
-            <button onClick={() => onDone(m)}
-              onMouseEnter={e => { e.target.style.background = m.isEvent?"#cc2222":accent; e.target.style.color = "#0f0e0d"; }}
-              onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = m.isEvent?"#ff4444":accent; }}
-              style={{ background:"transparent", border:"1px solid "+(m.isEvent?"#cc2222":accent), color:m.isEvent?"#ff4444":accent, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
-              ВЫПОЛНЕНО
-            </button>
+            <>
+              <button onClick={() => onSimulation(m)}
+                onMouseEnter={e => { e.target.style.borderColor="#6a6058"; e.target.style.color="#9a9088"; }}
+                onMouseLeave={e => { e.target.style.borderColor="#3a3228"; e.target.style.color="#5a5248"; }}
+                style={{ background:"transparent", border:"1px solid #3a3228", color:"#5a5248", padding:"4px 10px", fontSize:9, letterSpacing:1, cursor:"pointer", transition:"all 0.2s" }}>
+                SIM
+              </button>
+              <button onClick={() => onDone(m)}
+                onMouseEnter={e => { e.target.style.background = m.isEvent?"#cc2222":accent; e.target.style.color = "#0f0e0d"; }}
+                onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = m.isEvent?"#ff4444":accent; }}
+                style={{ background:"transparent", border:"1px solid "+(m.isEvent?"#cc2222":accent), color:m.isEvent?"#ff4444":accent, padding:"4px 14px", fontSize:9, letterSpacing:2, cursor:"pointer", transition:"all 0.2s" }}>
+                ВЫПОЛНЕНО
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -1398,6 +1407,7 @@ export default function App() {
   const [showDaily, setShowDaily] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const [logicMission, setLogicMission] = useState(null); // { mission, attempts }
+  const [simulationMission, setSimulationMission] = useState(null);
   const pauseBattleRef = useRef(null); // holds BattleTab's pause function
 
   // Load from storage on mount - but welcome screen is shown first
@@ -1559,6 +1569,93 @@ export default function App() {
       }
       const bonusMsg = memBonus > 0 ? ` +${memBonus}⚔` : "";
       toast$("+" + totalMem + bonusMsg + (mult>1?` ×${mult.toFixed(2)}`:"") + " MEM  +" + totalFrags + " ◈", "#4a9");
+      return ns;
+    });
+  }, [runChecks, toast$]);
+
+  const completeSimulation = useCallback((m, simResult) => {
+    // simResult: { outcome: 'full'|'partial'|'fail', fragsCollected, total }
+    setS(prev => {
+      const base = rewardByThreat(m.threat);
+      if (m.isEvent) { base.memory = Math.round(base.memory * 2); base.frags = base.frags * 2; }
+
+      // Множитель по outcome
+      // full    = 1.0 (полная награда)
+      // partial = пропорционально собранным фрагментам, минимум 25%
+      // fail    = 8% от базы MEM, 0 фрагментов
+      let memMult, fragReward;
+      if (simResult.outcome === "full") {
+        memMult = 1.0;
+        fragReward = base.frags;
+      } else if (simResult.outcome === "partial") {
+        const ratio = simResult.total > 0 ? simResult.fragsCollected / simResult.total : 0;
+        memMult = Math.max(0.25, ratio);
+        fragReward = simResult.fragsCollected;
+      } else {
+        // fail
+        memMult = 0.08;
+        fragReward = 0;
+      }
+
+      // Бонус оружия и сета — применяем только на full/partial
+      const gear = prev.gear || {};
+      const wid = gear.weapon || (prev.equipped && prev.equipped.weapon);
+      const ws = wid ? (WEAPON_STYLES[wid] || EQUIPMENT_WEAPON_STYLES[wid]) : null;
+      let memBonus = 0;
+      if (ws && simResult.outcome !== "fail") {
+        if (ws.bonus === "both") memBonus = Math.round(base.memory * ws.bonusPct / 100);
+        else if (ws.bonus === m.spec) memBonus = Math.round(base.memory * ws.bonusPct / 100);
+      }
+      const { mult, extraFrags } = getSetMemMultiplier(gear, prev.inventory || [], GACHA_POOL);
+      const setMult = simResult.outcome === "fail" ? 1 : mult;
+      const setFrags = simResult.outcome === "fail" ? 0 : extraFrags;
+
+      const totalMem = Math.round((base.memory * memMult + memBonus) * setMult);
+      const totalFrags = fragReward + setFrags;
+
+      let mem = prev.mem + totalMem;
+      let fw = prev.fw;
+      let memMax = prev.memMax;
+      let levelsGained = 0;
+      const levelsReached = [];
+      while (mem >= memMax) { mem -= memMax; fw++; memMax = xpFor(fw); levelsGained++; levelsReached.push(fw); }
+      const up = levelsGained > 0;
+      let levelFrags = 0;
+      for (const lvl of levelsReached) { levelFrags += (lvl === 5 || lvl === 9) ? 20 : 10; }
+
+      const cog = m.spec === "intellect" ? Math.min(10, prev.cog + 1) : prev.cog;
+      const syn = m.spec === "creativity" ? Math.min(10, prev.syn + 1) : prev.syn;
+      const frags = prev.frags + totalFrags + levelFrags;
+      const totalFragsEarned = (prev.totalFragsEarned || 0) + totalFrags + levelFrags;
+
+      const outcomeLabel = simResult.outcome === "full" ? "SIM:УСПЕХ" : simResult.outcome === "partial" ? "SIM:ЧАСТИЧНО" : "SIM:ПРОВАЛ";
+      const entry = {
+        time: new Date().toLocaleTimeString("ru"),
+        text: m.title + " [" + outcomeLabel + " +" + totalMem + " MEM, +" + totalFrags + " ◈]",
+        report: null,
+        threat: m.threat,
+      };
+
+      let ns = {
+        ...prev,
+        fw, mem, memMax, cog, syn, frags, totalFragsEarned,
+        log: [entry, ...(prev.log || [])].slice(0, 30),
+        missions: (prev.missions || []).filter(x => x.id !== m.id),
+        completed: [{ ...m, at: Date.now() }, ...(prev.completed || [])],
+        inbox: (prev.inbox || []).filter(l => l.missionId !== m.id),
+      };
+      ns = runChecks(ns);
+
+      if (up) {
+        setTimeout(() => { setFwUp(fw); setTimeout(() => setFwUp(null), 2800); }, 300);
+        setTimeout(() => showDialogue("levelUp", { fw }), 3200);
+        const isFormUnlock = levelsReached.some(lvl => lvl === 5 || lvl === 9);
+        const fragRewardMsg = isFormUnlock ? "НОВАЯ ФОРМА · +" + levelFrags + " ◈" : "+" + levelFrags + " ◈ ЗА УРОВЕНЬ";
+        setTimeout(() => toast$(fragRewardMsg, "#c8a882"), 3400);
+      }
+
+      const simColor = simResult.outcome === "full" ? "#4a9" : simResult.outcome === "partial" ? "#ca7" : "#c44";
+      toast$("SIM " + outcomeLabel.split(":")[1] + " +" + totalMem + " MEM +" + totalFrags + " ◈", simColor);
       return ns;
     });
   }, [runChecks, toast$]);
@@ -1934,6 +2031,18 @@ export default function App() {
         onConfirm={(report) => { completeMission(reportMission, report); setReportMission(null); setTimeout(() => showDialogue("missionComplete", { threat: reportMission.threat }), 500); }}
         onCancel={() => setReportMission(null)}
       />}
+      {simulationMission && (
+        <SimulationMode
+          mission={simulationMission}
+          onComplete={(simResult) => {
+            const m = simulationMission;
+            setSimulationMission(null);
+            completeSimulation(m, simResult);
+            setTimeout(() => showDialogue("missionComplete", { threat: m.threat }), 500);
+          }}
+          onClose={() => setSimulationMission(null)}
+        />
+      )}
 
       {/* Help button */}
       <div style={{ position:"fixed", bottom:20, right:16, zIndex:20, display:"flex", flexDirection:"column", gap:8 }}>
@@ -2071,7 +2180,8 @@ export default function App() {
                     </button>
                     {missions.map(m => <MCard key={m.id} m={m} accent={A} onDone={handleDone}
                       onReroll={rerollMission} rerollsLeft={rerollsLeft} rerollBlocked={rerollBlocked} now={now}
-                      onLogic={(m) => setLogicMission(m)} />)}
+                      onLogic={(m) => setLogicMission(m)}
+                      onSimulation={(m) => setSimulationMission(m)} />)}
                   </>
                 );
               })()}
