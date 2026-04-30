@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { pickMissions, WEAPON_CATEGORY_WEIGHTS } from "./missionBank.js";
+import { pickMissions } from "./missionBank.js";
 import LOGIC_BANK from "./LOGIC_MISSIONS.js";
 import { getMissionHint } from "./MISSION_HINTS.js";
 import BattleTab, { getDailyBattleMissions, getWaveDrops, MATERIALS, UPGRADE_COSTS, ABILITIES } from "./BattleMode.jsx";
@@ -41,10 +41,10 @@ const GACHA_POOL = [
   { id: "l5", type: "lore",   rarity: "epic",      icon: "▲", name: "Файл: Конец YoRHa",     desc: "«Операция Тригер была запланирована с самого начала. Бункер знал. Командование знало. Все знали.»" },
   { id: "l6", type: "lore",   rarity: "legendary", icon: "★", name: "Файл: Воля к жизни",    desc: "«Даже машины в итоге выбирают жить. Может быть, в этом и есть ответ на вопрос, что значит быть человеком.»" },
   // Weapons
-  { id: "w1", type: "weapon", rarity: "common",    icon: "◇", name: "Разрушитель грёз",      desc: "Стандартный короткий меч YoRHa. Директивы идут со всех направлений — ни одно не в приоритете." },
-  { id: "w2", type: "weapon", rarity: "rare",      icon: "◆", name: "Белый лотос",           desc: "Катана с гравировкой на клинке. Клинок тянется к знанию — большинство директив будут про учёбу и развитие." },
-  { id: "w3", type: "weapon", rarity: "epic",      icon: "▲", name: "Тёмная рука",           desc: "Тяжёлое двуручное оружие класса S. Требует глубокой работы — чаще всего выдаёт задания на обучение и интеллектуальный труд." },
-  { id: "w4", type: "weapon", rarity: "legendary", icon: "★", name: "Древо Миров",           desc: "Реликвийное оружие. Происхождение неизвестно. Держит баланс между творчеством, учёбой и отдыхом." },
+  { id: "w1", type: "weapon", rarity: "common",    icon: "◇", name: "Разрушитель грёз",      desc: "Стандартный короткий меч YoRHa. Надёжное оружие для любой ситуации." },
+  { id: "w2", type: "weapon", rarity: "rare",      icon: "◆", name: "Белый лотос",           desc: "Катана с гравировкой на клинке. Идеальный баланс между скоростью и точностью." },
+  { id: "w3", type: "weapon", rarity: "epic",      icon: "▲", name: "Тёмная рука",           desc: "Тяжёлое двуручное оружие класса S. Сокрушительная сила в каждом ударе." },
+  { id: "w4", type: "weapon", rarity: "legendary", icon: "★", name: "Древо Миров",           desc: "Реликвийное оружие. Происхождение неизвестно. Мощь, накопленная за тысячелетия." },
 ];
 
 
@@ -213,6 +213,7 @@ function mkState(o) {
     weekStart:    typeof o.weekStart === "string"   ? o.weekStart : "",
     lastLogin:    typeof o.lastLogin === "string"   ? o.lastLogin : "",
     loginClaimed: typeof o.loginClaimed === 'boolean' ? o.loginClaimed : false,
+    claimedDate:  typeof o.claimedDate === "string"  ? o.claimedDate : "",
     // Battle mode state
     materials:    (o.materials && typeof o.materials === 'object') ? o.materials : {},
     battleMissionsDate: typeof o.battleMissionsDate === 'string' ? o.battleMissionsDate : "",
@@ -307,8 +308,8 @@ function pullGacha() {
 // ═══════════════════════════════════════════════════════
 
 // Генерация миссий из банка (вместо AI)
-function genMissions(weaponId) {
-  return pickMissions(3, weaponId, false, LOGIC_BANK);
+function genMissions() {
+  return pickMissions(3, null, false, LOGIC_BANK);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -523,7 +524,7 @@ function DailyRewardPopup({ state, onClaim, onClose, accent }) {
     ? (state.weekDays || [false,false,false,false,false,false,false])
     : [false,false,false,false,false,false,false];
 
-  const alreadyClaimed = state.lastLogin === today && state.loginClaimed;
+  const alreadyClaimed = state.claimedDate === today;
   const reward = WEEK_REWARDS[currentDay];
 
   return (
@@ -1728,7 +1729,7 @@ export default function App() {
       saveState(newState);
       setShowWelcome(false);
       setTimeout(() => showDialogue("login"), 1500);
-      if (newState.lastLogin !== today || !newState.loginClaimed) {
+      if (newState.claimedDate !== today) {
         setTimeout(() => setShowDaily(true), 2000);
       }
     } catch(e) {
@@ -1772,6 +1773,7 @@ export default function App() {
         weekStart,
         lastLogin: today,
         loginClaimed: true,
+        claimedDate: today,
       };
     });
     toast$("+" + reward.frags + " ◈" + (reward.mem > 0 ? "  +" + reward.mem + " MEM" : ""), "#c8a882");
@@ -1784,8 +1786,7 @@ export default function App() {
     const genToday = S.genDate === today ? S.genToday : 0;
     if (genToday >= 3) { toast$("ЛИМИТ ГЕНЕРАЦИЙ ИСЧЕРПАН", "#c44"); return; }
     try {
-      const weaponId = (S.gear && S.gear.weapon) || (S.equipped && S.equipped.weapon) || null;
-      const ms = genMissions(weaponId);
+      const ms = genMissions();
       const now = Date.now();
       const wid = ms.map((m, i) => {
         const isEvent = m.isEvent || false;
@@ -1865,14 +1866,16 @@ export default function App() {
     const mission = (S.missions||[]).find(m => m.id === missionId);
     if (!mission) return;
     try {
-      const weaponId = S.equipped && S.equipped.weapon ? S.equipped.weapon : null;
-      const ms = genMissions(weaponId);
+      const ms = genMissions();
       const rerollNow = Date.now();
       const picked = ms[0];
       const isEvent = picked.isEvent || false;
       const isLogic = picked.isLogic || false;
       const lifetime = missionLifetime(picked.threat, isEvent, isLogic);
-      const newM = { ...picked, id: missionId, isEvent, isLogic, expiresAt: mission.expiresAt, createdAt: mission.createdAt };
+      // Для обычных миссий сохраняем исходный таймер; для логических и ивент — пересчитываем
+      const newExpiresAt = (!isLogic && !isEvent) ? mission.expiresAt : rerollNow + lifetime;
+      const newCreatedAt = (!isLogic && !isEvent) ? mission.createdAt : rerollNow;
+      const newM = { ...picked, id: missionId, isEvent, isLogic, expiresAt: newExpiresAt, createdAt: newCreatedAt };
       const newCount2 = newCount + 1;
       const newLetter = {
         id: "l" + missionId + "_r" + rerollNow,

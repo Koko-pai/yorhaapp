@@ -657,12 +657,8 @@ export default function SimulationMode({ mission, onComplete, onClose }) {
               {result.outcome === "fail" && <div style={{ color: "#c44444" }}>✗ Минимальная компенсация (8%)</div>}
             </div>
             <div style={{ display:"flex", gap:8, width:"100%", maxWidth:280 }}>
-              <button onClick={onClose}
-                style={{ flex:1, padding:11, background:"transparent", border:"1px solid #3a3228", color:"#5a5248", fontFamily:"'Courier New',monospace", fontSize:9, letterSpacing:2, cursor:"pointer" }}>
-                ЗАКРЫТЬ
-              </button>
               <button onClick={handleConfirm}
-                style={{ flex:2, padding:11, background:"#141210", border:"1px solid #4a4438", borderTop:"1px solid "+statusColor, color: statusColor, fontFamily:"'Courier New',monospace", fontSize:9, letterSpacing:2, cursor:"pointer" }}>
+                style={{ flex:1, padding:11, background:"#141210", border:"1px solid #4a4438", borderTop:"1px solid "+statusColor, color: statusColor, fontFamily:"'Courier New',monospace", fontSize:9, letterSpacing:2, cursor:"pointer" }}>
                 [ ПРИНЯТЬ НАГРАДУ ]
               </button>
             </div>

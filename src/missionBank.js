@@ -1143,37 +1143,12 @@ export const CATEGORY_LABELS = {
 // Базовые веса для каждой категории: 25 (4 категории × 25 = 100)
 // ═══════════════════════════════════════════════════════
 
-export const WEAPON_CATEGORY_WEIGHTS = {
-  // w1 — Разрушитель грёз: нейтральное, все категории равномерно
-  "w1": {
-    creative: 25, educational: 25, domestic: 25, leisure: 25,
-    hint: "Равномерный поток директив по всем направлениям.",
-  },
-  // w2 — Белый лотос: упор на образовательные миссии
-  "w2": {
-    creative: 15, educational: 55, domestic: 10, leisure: 20,
-    hint: "Катана обостряет разум. Приоритет: образовательный пул — изучение, практика, развитие.",
-  },
-  // w3 — Тёмная рука: упор на образовательные + творческие
-  "w3": {
-    creative: 25, educational: 40, domestic: 10, leisure: 25,
-    hint: "Двуручник давит своей массой. Приоритет: образовательный пул с акцентом на глубокую работу.",
-  },
-  // w4 — Древо Миров: баланс творческого и образовательного
-  "w4": {
-    creative: 30, educational: 30, domestic: 10, leisure: 30,
-    hint: "Реликвия балансирует силу и мудрость. Акцент: творческие и образовательные директивы.",
-  },
-};
-
 // ═══════════════════════════════════════════════════════
 // MISSION PICKER FUNCTION
 // ═══════════════════════════════════════════════════════
 
-export function pickMissions(count = 3, weaponId = null, forceEvent = false, logicPool = []) {
-  const weights = (weaponId && WEAPON_CATEGORY_WEIGHTS[weaponId])
-    ? WEAPON_CATEGORY_WEIGHTS[weaponId]
-    : { creative: 25, educational: 25, domestic: 25, leisure: 25 };
+export function pickMissions(count = 3, _weaponId = null, forceEvent = false, logicPool = []) {
+  const weights = { creative: 25, educational: 25, domestic: 25, leisure: 25 };
 
   // Separate event and regular missions
   const eventPool   = MISSION_BANK.filter(m => m.isEvent);

@@ -115,9 +115,9 @@ const BATTLE_MISSIONS_POOL = [
   { id:"bm5",  title:"УНИЧТОЖИТЬ 50 ПРОТИВНИКОВ", desc:"Уничтожьте 50 врагов за один бой",       req:{kills:50},      mem:65, frags:3 },
   { id:"bm6",  title:"ПОБЕДИТЬ БОССА",             desc:"Уничтожьте первого встреченного босса",  req:{bosses:1},      mem:60, frags:4 },
   { id:"bm7",  title:"ПОБЕДИТЬ 2 БОССОВ",          desc:"Уничтожьте двух боссов в одном бою",    req:{bosses:2},      mem:90, frags:5 },
-  { id:"bm8",  title:"POD FIRE × 5",               desc:"Применить POD FIRE не менее 5 раз",     req:{podFire:5},     mem:25, frags:2 },
+  { id:"bm8",  title:"СПОСОБНОСТИ × 5",            desc:"Используйте любую способность 5 раз",   req:{abilities:5},   mem:25, frags:2 },
   { id:"bm9",  title:"ВОЛНА БЕЗ УРОНА",            desc:"Пройти любую волну без получения урона", req:{perfectWave:1}, mem:40, frags:3 },
-  { id:"bm10", title:"EVADE × 3",                  desc:"Использовать уклонение не менее 3 раз",  req:{evades:3},      mem:20, frags:2 },
+  { id:"bm10", title:"СПОСОБНОСТИ × 10",           desc:"Используйте любую способность 10 раз",  req:{abilities:10},  mem:40, frags:3 },
 ];
 
 export function getDailyBattleMissions(dateStr) {
@@ -160,9 +160,10 @@ function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool,
   for (const slot of EQUIP_SLOTS) {
     const id = (gear||{})[slot];
     if (!id) continue;
-    const item = (equipPool||[]).find(e=>e.id===id) || (gachaPool||[]).find(e=>e.id===id);
+    const item = (equipPool||[]).find(e=>e.id===id||e.iid===id) || (gachaPool||[]).find(e=>e.id===id||e.iid===id);
     if (!item) continue;
-    const lvl = (gearLevels||{})[slot] || 1;
+    // key by gear[slot] (= iid when available) for per-instance upgrade levels
+    const lvl = (gearLevels||{})[id] || (gearLevels||{})[slot] || 1;
     const s = calcStats({ ...item, slot: item.slot||slot, level: lvl });
     hp+=s.hp; atk+=s.atk; crit+=s.crit; critdmg+=s.critdmg;
   }
@@ -214,6 +215,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const [displayMaxHP, setDisplayMaxHP]     = useState(100);
   const [displayEnemies, setDisplayEnemies] = useState([]);
   const [displayCDs, setDisplayCDs]         = useState(() => getInitialCDs(DEFAULT_CHARACTER_ID));
+  const [displayAbilityUses, setDisplayAbilityUses] = useState(0);
   const [wave, setWave]                     = useState(0);
   const [kills, setKills]                   = useState(0);
   const [battleLog, setBattleLog]           = useState([]);
@@ -229,7 +231,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const G = useRef({
     phase:"lobby", unitHP:100, unitMaxHP:100,
     enemies:[], wave:0, kills:0, bossKills:0,
-    sessionDrops:{}, podFires:0, evadeCount:0, eventBossKills:0,
+    sessionDrops:{}, abilityUses:0, eventBossKills:0,
     hitThisWave:false, eventBoss:false,
     perfectWaveAchieved:false,
     cds: getInitialCDs(DEFAULT_CHARACTER_ID),
@@ -280,8 +282,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         const ok = (r.waves       && g.wave>=r.waves)       ||
                    (r.kills       && g.kills>=r.kills)       ||
                    (r.bosses      && g.bossKills>=r.bosses)  ||
-                   (r.podFire     && g.podFires>=r.podFire)  ||
-                   (r.evades      && g.evadeCount>=r.evades) ||
+                   (r.abilities   && g.abilityUses>=r.abilities) ||
                    (r.perfectWave && g.perfectWaveAchieved);
         if (ok) { done.push(bm.id); ef+=bm.frags; em+=bm.mem; changed=true; }
       }
@@ -488,7 +489,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     const hp = g.frozenStats.hp;
     g.unitHP=hp; g.unitMaxHP=hp;
     g.enemies=[]; g.wave=0; g.kills=0; g.bossKills=0;
-    g.sessionDrops={}; g.podFires=0; g.evadeCount=0;
+    g.sessionDrops={}; g.abilityUses=0;
     g.hitThisWave=false; g.eventBoss=false;
     g.cds=getInitialCDs(DEFAULT_CHARACTER_ID); g.invincUntil=0; g.atkTimer=0;
     g.memEarned=0; g.perfectWaveAchieved=false; g.phase="fighting"; g._lowHpWarned=false;
@@ -496,7 +497,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     setWave(0); setKills(0); setBattleLog([]);
     setSessionDrops({}); setWaveDrops(null); setAnimHits([]);
     setEventBoss(false); setEnemyFlash({});
-    setDisplayEnemies([]); setDisplayCDs(getInitialCDs(DEFAULT_CHARACTER_ID));
+    setDisplayEnemies([]); setDisplayCDs(getInitialCDs(DEFAULT_CHARACTER_ID)); setDisplayAbilityUses(0);
     setUnitAnim("idle");
     setPhase("fighting");
     const startQuip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "battleStart");
@@ -537,7 +538,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       flashUnit("skill");
       triggerFx("pod_grid");
       g.enemies.forEach(e => spawnHit(dmg, false, e.x, 10+Math.random()*20, false));
-      g.podFires++;
+      g.abilityUses++;
       const quip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "abilityPodGrid");
       if (quip && onShowDialogue) onShowDialogue(quip);
       log("◈ POD GRID — "+dmg+" × "+hit+" целей", "#a09080");
@@ -548,6 +549,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       flashUnit("skill");
       triggerFx("repair");
       spawnHit(heal, false, 8, 30+Math.random()*15, true);
+      g.abilityUses++;
       const quip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "abilityRepair");
       if (quip && onShowDialogue) onShowDialogue(quip);
       log("♦ REPAIR PROTOCOL — +"+heal+" HP", "#44bb88");
@@ -565,6 +567,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       flashUnit("skill");
       triggerFx("data_corruption");
       spawnHit(dmg, isCrit, tgt.x, 10+Math.random()*25, false);
+      g.abilityUses++;
       const quip = getCharacterDialogue(DEFAULT_CHARACTER_ID, "abilityCorruption");
       if (quip && onShowDialogue) onShowDialogue(quip);
       log("▣ DATA CORRUPTION — "+(isCrit?"[★КРИТ] ":"")+dmg+" → "+tgt.name+" (цена: -"+selfDmg+" HP)", "#aa44cc");
@@ -573,6 +576,9 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     g.cds[id] = ab.cooldown;
     setDisplayEnemies(g.enemies.map(e=>({...e})));
     setDisplayCDs({...g.cds});
+    setDisplayAbilityUses(g.abilityUses);
+    // Проверяем миссии сразу — чтобы миссии на способности засчитывались немедленно
+    checkMissions(g);
   };
 
   // ── Upgrade gear ──
@@ -580,11 +586,13 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const RARITY_COST_MULT = { common:1.0, rare:1.4, epic:2.0, legendary:3.0 };
   const getItemRarity = (slot) => {
     const id = (S.gear||{})[slot]; if (!id) return "common";
-    const item = (equipmentPool||[]).find(e=>e.id===id) || (gachaPool||[]).find(e=>e.id===id);
+    const item = (equipmentPool||[]).find(e=>e.id===id||e.iid===id) || (gachaPool||[]).find(e=>e.id===id||e.iid===id);
     return item?.rarity || "common";
   };
+  // gearLevels keyed by gear[slot] value (= iid when available, else item.id)
+  const gearItemKey = (slot) => (S.gear||{})[slot] || slot;
   const scaledCost = (slot) => {
-    const lvl = gearLevels[slot]||1;
+    const lvl = gearLevels[gearItemKey(slot)]||1;
     const base = (UPGRADE_COSTS[slot]||[])[lvl]; if (!base) return null;
     const mult = RARITY_COST_MULT[getItemRarity(slot)] || 1.0;
     const result = {};
@@ -593,20 +601,21 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   };
   const canUpgrade = (slot) => {
     const id = (S.gear||{})[slot]; if (!id) return false;
-    const lvl = gearLevels[slot]||1; if (lvl>=30) return false;
+    const lvl = gearLevels[gearItemKey(slot)]||1; if (lvl>=30) return false;
     const cost = scaledCost(slot); if (!cost) return false;
     return Object.entries(cost).every(([k,v])=>((S.materials||{})[k]||0)>=v);
   };
   const upgradeGear = (slot) => {
     if (!canUpgrade(slot)) return;
-    const lvl  = gearLevels[slot]||1;
+    const key  = gearItemKey(slot);
+    const lvl  = gearLevels[key]||1;
     const cost = scaledCost(slot);
     setS(prev => {
       const mats = {...(prev.materials||{})};
       for (const [k,v] of Object.entries(cost)) mats[k]=Math.max(0,(mats[k]||0)-v);
-      return { ...prev, materials:mats, gearLevels:{...(prev.gearLevels||{}), [slot]:lvl+1} };
+      return { ...prev, materials:mats, gearLevels:{...(prev.gearLevels||{}), [key]:lvl+1} };
     });
-    if (onToast) onToast("◈ "+SLOT_LABELS[slot]+" → УР."+String((gearLevels[slot]||1)+1));
+    if (onToast) onToast("◈ "+SLOT_LABELS[slot]+" → УР."+String((gearLevels[key]||1)+1));
   };
 
   // ═══════════════════════════════════
@@ -689,8 +698,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
             if (r.waves)       return { cur: Math.min(g.wave,      r.waves),       max: r.waves       };
             if (r.kills)       return { cur: Math.min(g.kills,     r.kills),       max: r.kills       };
             if (r.bosses)      return { cur: Math.min(g.bossKills, r.bosses),      max: r.bosses      };
-            if (r.podFire)     return { cur: Math.min(g.podFires,  r.podFire),     max: r.podFire     };
-            if (r.evades)      return { cur: Math.min(g.evadeCount,r.evades),      max: r.evades      };
+            if (r.abilities)   return { cur: Math.min(g.abilityUses, r.abilities),   max: r.abilities   };
             if (r.perfectWave) return { cur: g.perfectWaveAchieved ? 1 : 0,        max: 1             };
             return { cur: 0, max: 1 };
           })();
@@ -1016,6 +1024,23 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
           })}
         </div>
       )}
+      {/* Ability mission progress hint */}
+      {phase==="fighting" && (() => {
+        const abMission = battleMissions.find(bm => bm.req.abilities && !doneMissions.includes(bm.id));
+        if (!abMission) return null;
+        const cur = Math.min(displayAbilityUses, abMission.req.abilities);
+        const max = abMission.req.abilities;
+        return (
+          <div style={{marginBottom:10,padding:"5px 10px",background:"#0d0c0a",border:"1px solid #2a2520",borderLeft:"2px solid "+accent+"55",display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:7,color:"#5a5248",letterSpacing:1,flex:1}}>
+              ◈ МИССИЯ: Используйте способность {cur}/{max} раз
+            </span>
+            <div style={{width:60,height:2,background:"#1a1814"}}>
+              <div style={{height:"100%",width:(cur/max*100)+"%",background:accent,transition:"width 0.3s"}}/>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* START / RESTART */}
       {(phase==="lobby"||phase==="dead") && (
@@ -1099,8 +1124,8 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
           )}
           {EQUIP_SLOTS.map(slot => {
             const id   = (S.gear||{})[slot];
-            const item = id ? ((equipmentPool||[]).find(e=>e.id===id)||(gachaPool||[]).find(e=>e.id===id)) : null;
-            const lvl  = gearLevels[slot]||1;
+            const item = id ? ((equipmentPool||[]).find(e=>e.id===id||e.iid===id)||(gachaPool||[]).find(e=>e.id===id||e.iid===id)) : null;
+            const lvl  = gearLevels[gearItemKey(slot)]||1;
             const maxed= lvl>=30;
             const cost = !maxed ? scaledCost(slot) : null;
             const canUp= canUpgrade(slot);

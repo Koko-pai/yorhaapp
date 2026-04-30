@@ -401,7 +401,8 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                                 <span style={{ color:rc }}>{item.rarity?.toUpperCase()}</span>
                                 {setDef && <span style={{ color:setDef.color }}>· {setDef.name}</span>}
                                 {(() => {
-                                  const lvl = (S.gearLevels||{})[slot] || 1;
+                                  const itemKey = item.iid || item.id;
+                                  const lvl = (S.gearLevels||{})[itemKey] || (S.gearLevels||{})[slot] || 1;
                                   const r = rollItemStats(item);
                                   const cs = calcStats({ ...item, level: lvl });
                                   const pv = cs[r.primary];
@@ -508,7 +509,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
                         {isEquipped ? <div style={{ fontSize:8, color:rc, letterSpacing:1 }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#5a5248" }}>НАДЕТЬ</div>}
-                        <div style={{ fontSize:7, color:"#6a6058", marginTop:2 }}>Lv.{(S.gearLevels||{})[slot] || 1}</div>
+                        <div style={{ fontSize:7, color:"#6a6058", marginTop:2 }}>Lv.{(S.gearLevels||{})[item.iid||item.id] || (S.gearLevels||{})[slot] || 1}</div>
                       </div>
                     </div>
                   );
@@ -614,7 +615,8 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
             )}
             {(() => {
               const _slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
-              const itemWithSlot = { ...selectedItem, slot: _slot, level: (S.gearLevels||{})[_slot] || 1 };
+              const itemKey = selectedItem.iid || selectedItem.id;
+              const itemWithSlot = { ...selectedItem, slot: _slot, level: (S.gearLevels||{})[itemKey] || (S.gearLevels||{})[_slot] || 1 };
               const rolled  = rollItemStats(itemWithSlot);
               const cs      = calcStats(itemWithSlot);
               const allStats = [
@@ -653,7 +655,8 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
               <div style={{ fontSize:7, letterSpacing:2, color:"#5a5248", marginBottom:6 }}>УЛУЧШЕНИЕ</div>
               {(() => {
               const slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
-                const lvl  = (S.gearLevels||{})[slot] || 1;
+              const itemKey = selectedItem.iid || selectedItem.id;
+                const lvl  = (S.gearLevels||{})[itemKey] || (S.gearLevels||{})[slot] || 1;
                 const maxed = lvl >= 30;
                 return (
                   <>
