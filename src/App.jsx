@@ -181,6 +181,30 @@ function fmtTime(ms) {
 
 function mkState(o) {
   o = (o && typeof o === "object") ? o : {};
+
+  // Миграция: конвертируем строки в инвентаре в объекты { id, iid }
+  const rawInv = Array.isArray(o.inventory) ? o.inventory : [];
+  const migratedInv = rawInv.map((e, i) => {
+    if (typeof e === 'string') return { id: e, iid: e + "_legacy_" + i };
+    if (e && typeof e === 'object' && e.id && !e.iid) return { ...e, iid: e.id + "_legacy_" + i };
+    return e;
+  });
+
+  // Миграция: переносим gearLevels с ключа slot на ключ iid/itemId
+  const rawGear   = (o.gear && typeof o.gear === 'object') ? o.gear : {};
+  const rawLevels = (o.gearLevels && typeof o.gearLevels === 'object') ? o.gearLevels : {};
+  const migratedLevels = { ...rawLevels };
+  for (const slot of ["head","chest","arms","legs","weapon"]) {
+    const slotLvl = rawLevels[slot];
+    if (slotLvl && slotLvl > 1) {
+      const gearKey = rawGear[slot];
+      if (gearKey && !rawLevels[gearKey]) {
+        migratedLevels[gearKey] = slotLvl;
+        delete migratedLevels[slot];
+      }
+    }
+  }
+
   return {
     fw:         typeof o.fw === "number"        ? o.fw        : 1,
     mem:        typeof o.mem === "number"       ? o.mem       : 0,
@@ -200,8 +224,8 @@ function mkState(o) {
     unlocked:   Array.isArray(o.unlocked)       ? o.unlocked  : ["sentinel"],
     form:       (typeof o.form === "string" && FORMS[o.form]) ? o.form : "sentinel",
     boots:      typeof o.boots === "number"     ? o.boots + 1 : 1,
-    inventory:  Array.isArray(o.inventory)      ? o.inventory : [],
-    gear:       (o.gear && typeof o.gear === "object") ? o.gear : {},
+    inventory:  migratedInv,
+    gear:       rawGear,
     equipped:   (o.equipped && typeof o.equipped === "object") ? o.equipped : { title: null, color: null, weapon: null },
     loreRead:        Array.isArray(o.loreRead)         ? o.loreRead        : [],
     totalFragsEarned: typeof o.totalFragsEarned === "number" ? o.totalFragsEarned : 0,
@@ -220,7 +244,7 @@ function mkState(o) {
     battleMissionsDone: Array.isArray(o.battleMissionsDone) ? o.battleMissionsDone : [],
     battleMemToday: typeof o.battleMemToday === 'number' ? o.battleMemToday : 0,
     battleMemDate:  typeof o.battleMemDate  === 'string' ? o.battleMemDate  : "",
-    gearLevels:   (o.gearLevels && typeof o.gearLevels === 'object') ? o.gearLevels : {},
+    gearLevels:   migratedLevels,
   };
 }
 
