@@ -199,18 +199,29 @@ function mkState(o) {
   for (const slot of ["head","chest","gloves","boots","weapon"]) {
     const gearKey = rawGear[slot];
     if (!gearKey) continue;
-    // Найти iid в уже мигрированном инвентаре
     const invEntry = migratedInv.find(i => typeof i === 'object' && (i.iid === gearKey || i.id === gearKey));
     const targetIid = (invEntry && invEntry.iid) ? invEntry.iid : gearKey;
-    // Обновить gear[slot] → iid
     migratedGear[slot] = targetIid;
-    // Перенести уровень с slot-ключа на iid-ключ
     const slotLvl = rawLevels[slot];
     if (slotLvl && slotLvl > 1 && !rawLevels[targetIid]) {
       migratedLevels[targetIid] = slotLvl;
       delete migratedLevels[slot];
     }
   }
+
+  // Миграция: фиксируем rolledStats для предметов у которых их ещё нет
+  const finalInv = migratedInv.map(e => {
+    if (!e || typeof e !== 'object') return e;
+    if (e.rolledStats) return e;
+    try {
+      const base = EQUIPMENT_POOL.find(p => p.id === e.id) || GACHA_POOL.find(p => p.id === e.id);
+      if (base) {
+        const rolled = rollItemStats({ ...base, iid: e.iid });
+        return { ...e, rolledStats: rolled };
+      }
+    } catch(_) {}
+    return e;
+  });
 
   return {
     fw:         typeof o.fw === "number"        ? o.fw        : 1,
@@ -231,7 +242,7 @@ function mkState(o) {
     unlocked:   Array.isArray(o.unlocked)       ? o.unlocked  : ["sentinel"],
     form:       (typeof o.form === "string" && FORMS[o.form]) ? o.form : "sentinel",
     boots:      typeof o.boots === "number"     ? o.boots + 1 : 1,
-    inventory:  migratedInv,
+    inventory:  finalInv,
     gear:       migratedGear,
     equipped:   (o.equipped && typeof o.equipped === "object") ? o.equipped : { title: null, color: null, weapon: null },
     loreRead:        Array.isArray(o.loreRead)         ? o.loreRead        : [],
@@ -1771,16 +1782,17 @@ export default function App() {
                     : (isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5)
                     : (!isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5) : 0;
 
-    // Генерируем iid заранее чтобы передать в оверлей для корректного отображения статов
+    // Генерируем iid и фиксируем статы сразу при дропе
     const newIid = (isEquipment || result.type === "weapon") ? result.id + "_" + Date.now() : null;
+    const newRolledStats = newIid ? rollItemStats({ ...result, iid: newIid }) : null;
 
     setS(prev => {
       const inv = [...(prev.inventory||[])];
 
       if (isEquipment) {
-        inv.push({ id: result.id, iid: newIid });
+        inv.push({ id: result.id, iid: newIid, rolledStats: newRolledStats });
       } else if (result.type === "weapon") {
-        inv.push({ id: result.id, iid: newIid });
+        inv.push({ id: result.id, iid: newIid, rolledStats: newRolledStats });
       } else {
         // Non-equipment (titles, colors, lore): dupe → convert to frags
         if (alreadyHas) {
@@ -2423,7 +2435,7 @@ export default function App() {
                     const nonWeapon = GACHA_POOL.filter(item => item.type !== "weapon" && inArr(inventory, item.id));
                     const weaponInstances = inventory
                       .filter(e => { const id = typeof e === 'object' ? e.id : e; return GACHA_POOL.some(g => g.id === id && g.type === "weapon"); })
-                      .map(e => { const id = typeof e === 'object' ? e.id : e; const iid = typeof e === 'object' ? e.iid : id; return { ...GACHA_POOL.find(g => g.id === id), iid }; })
+                      .map(e => { const id = typeof e === 'object' ? e.id : e; const iid = typeof e === 'object' ? e.iid : id; const rolledStats = typeof e === 'object' ? e.rolledStats : undefined; return { ...GACHA_POOL.find(g => g.id === id), iid, ...(rolledStats ? { rolledStats } : {}) }; })
                       .filter(Boolean);
                     const allItems = [...nonWeapon.map(i => ({...i, iid: null})), ...weaponInstances];
                     return allItems.map(item => {

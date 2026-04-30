@@ -166,8 +166,10 @@ function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool,
     const baseId = invEntry && typeof invEntry === 'object' ? invEntry.id : gearKey;
     const item = (equipPool||[]).find(e=>e.id===baseId) || (gachaPool||[]).find(e=>e.id===baseId);
     if (!item) continue;
+    const iid = invEntry && typeof invEntry === 'object' ? invEntry.iid : gearKey;
+    const rolledStats = invEntry && typeof invEntry === 'object' ? invEntry.rolledStats : undefined;
     const lvl = (gearLevels||{})[gearKey] || (gearLevels||{})[slot] || 1;
-    const s = calcStats({ ...item, slot: item.slot||slot, level: lvl });
+    const s = calcStats({ ...item, slot: item.slot||slot, level: lvl, iid, ...(rolledStats ? { rolledStats } : {}) });
     hp+=s.hp; atk+=s.atk; crit+=s.crit; critdmg+=s.critdmg;
   }
   return { hp, atk, crit:Math.min(crit,75), critdmg:Math.min(critdmg,200) };

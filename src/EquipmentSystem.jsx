@@ -227,7 +227,8 @@ function getEquippedItems(gear, inventory, gachaPool) {
               || gp.find(e => e.id === gearKey);
 
     if (base) {
-      result[slot] = { ...base, slot: base.slot || slot, level: 1, iid };
+      const rolledStats = invItem && typeof invItem === 'object' ? invItem.rolledStats : undefined;
+      result[slot] = { ...base, slot: base.slot || slot, level: 1, iid, ...(rolledStats ? { rolledStats } : {}) };
     }
   }
   return result;
@@ -279,8 +280,9 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
     .map(i => {
       const id  = typeof i === 'object' ? i.id  : i;
       const iid = typeof i === 'object' ? i.iid : id;
+      const rolledStats = typeof i === 'object' ? i.rolledStats : undefined;
       const base = EQUIPMENT_POOL.find(e => e.id === id);
-      return base ? { ...base, iid } : null;
+      return base ? { ...base, iid, ...(rolledStats ? { rolledStats } : {}) } : null;
     })
     .filter(Boolean);
 
@@ -372,8 +374,9 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
               .map(i => {
                 const id  = typeof i === 'object' ? i.id  : i;
                 const iid = typeof i === 'object' ? i.iid : id;
+                const rolledStats = typeof i === 'object' ? i.rolledStats : undefined;
                 const base = EQUIPMENT_POOL.find(e => e.id === id);
-                return base ? { ...base, iid } : null;
+                return base ? { ...base, iid, ...(rolledStats ? { rolledStats } : {}) } : null;
               })
               .filter(Boolean),
             // Оружия из гача-пула (все экземпляры)
@@ -386,8 +389,9 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                   .map(i => {
                     const id  = typeof i === 'object' ? i.id  : i;
                     const iid = typeof i === 'object' ? i.iid : id;
+                    const rolledStats = typeof i === 'object' ? i.rolledStats : undefined;
                     const base = gachaPool.find(g => g.id === id);
-                    return base ? { ...base, slot: "weapon", iid } : null;
+                    return base ? { ...base, slot: "weapon", iid, ...(rolledStats ? { rolledStats } : {}) } : null;
                   })
                   .filter(Boolean)
               : []),
