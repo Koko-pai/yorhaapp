@@ -157,13 +157,16 @@ export function getWaveDrops(wave, isBossWave) {
 function computeUnitStats(gear, inventory, fw, gearLevels, equipPool, gachaPool, characterId, unlockedForms) {
   const base = computeCharacterBattleBase(characterId || DEFAULT_CHARACTER_ID, fw, unlockedForms);
   let hp=base.baseHp, atk=base.baseAtk, crit=base.baseCrit, critdmg=base.baseCritdmg;
+  const inv = Array.isArray(inventory) ? inventory : [];
   for (const slot of EQUIP_SLOTS) {
-    const id = (gear||{})[slot];
-    if (!id) continue;
-    const item = (equipPool||[]).find(e=>e.id===id||e.iid===id) || (gachaPool||[]).find(e=>e.id===id||e.iid===id);
+    const gearKey = (gear||{})[slot];
+    if (!gearKey) continue;
+    // Resolve base item id via inventory (gearKey may be iid)
+    const invEntry = inv.find(i => typeof i === 'object' ? (i.iid === gearKey || i.id === gearKey) : i === gearKey);
+    const baseId = invEntry && typeof invEntry === 'object' ? invEntry.id : gearKey;
+    const item = (equipPool||[]).find(e=>e.id===baseId) || (gachaPool||[]).find(e=>e.id===baseId);
     if (!item) continue;
-    // key by gear[slot] (= iid when available) for per-instance upgrade levels
-    const lvl = (gearLevels||{})[id] || (gearLevels||{})[slot] || 1;
+    const lvl = (gearLevels||{})[gearKey] || (gearLevels||{})[slot] || 1;
     const s = calcStats({ ...item, slot: item.slot||slot, level: lvl });
     hp+=s.hp; atk+=s.atk; crit+=s.crit; critdmg+=s.critdmg;
   }
@@ -585,8 +588,10 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   // Rarity multiplies upgrade cost
   const RARITY_COST_MULT = { common:1.0, rare:1.4, epic:2.0, legendary:3.0 };
   const getItemRarity = (slot) => {
-    const id = (S.gear||{})[slot]; if (!id) return "common";
-    const item = (equipmentPool||[]).find(e=>e.id===id||e.iid===id) || (gachaPool||[]).find(e=>e.id===id||e.iid===id);
+    const gearKey = (S.gear||{})[slot]; if (!gearKey) return "common";
+    const invEntry = (S.inventory||[]).find(i => typeof i === 'object' ? (i.iid === gearKey || i.id === gearKey) : i === gearKey);
+    const baseId = invEntry && typeof invEntry === 'object' ? invEntry.id : gearKey;
+    const item = (equipmentPool||[]).find(e=>e.id===baseId) || (gachaPool||[]).find(e=>e.id===baseId);
     return item?.rarity || "common";
   };
   // gearLevels keyed by gear[slot] value (= iid when available, else item.id)
@@ -1123,8 +1128,11 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
             </div>
           )}
           {EQUIP_SLOTS.map(slot => {
-            const id   = (S.gear||{})[slot];
-            const item = id ? ((equipmentPool||[]).find(e=>e.id===id||e.iid===id)||(gachaPool||[]).find(e=>e.id===id||e.iid===id)) : null;
+            const gearKey = (S.gear||{})[slot];
+            // gearKey может быть iid — найдём базовый id через инвентарь
+            const invEntry = gearKey ? (S.inventory||[]).find(i => typeof i === 'object' ? (i.iid === gearKey || i.id === gearKey) : i === gearKey) : null;
+            const baseId = invEntry && typeof invEntry === 'object' ? invEntry.id : gearKey;
+            const item = gearKey ? ((equipmentPool||[]).find(e=>e.id===baseId)||(gachaPool||[]).find(e=>e.id===baseId)) : null;
             const lvl  = gearLevels[gearItemKey(slot)]||1;
             const maxed= lvl>=30;
             const cost = !maxed ? scaledCost(slot) : null;

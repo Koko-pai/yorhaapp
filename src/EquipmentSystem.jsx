@@ -265,7 +265,13 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
   const gear      = S.gear || {};
   const inventory = S.inventory || [];
 
-  const ownedEquipment = EQUIPMENT_POOL.filter(e => inArrFn(inventory, e.id));
+  const ownedEquipment = EQUIPMENT_POOL
+    .filter(e => inArrFn(inventory, e.id))
+    .map(e => {
+      const invEntry = inventory.find(i => typeof i === 'object' ? (i.iid === e.id || i.id === e.id) : i === e.id);
+      const iid = (invEntry && typeof invEntry === 'object' && invEntry.iid) ? invEntry.iid : e.id;
+      return { ...e, iid };
+    });
 
   const equipItem = (item) => {
     const prevBonuses = getSetBonuses(gear, inventory, gachaPool);
@@ -346,8 +352,27 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
           const isOpen = openSlot === slot;
           // Предметы доступные для этого слота
           const slotItems = [
-            ...EQUIPMENT_POOL.filter(e => e.slot === slot && inArrFn(inventory, e.id)),
-            ...(slot === "weapon" ? gachaPool.filter(i => i.type === "weapon" && inArrFn(inventory, i.id)).map(i => ({...i, slot:"weapon"})) : []),
+            ...EQUIPMENT_POOL
+              .filter(e => e.slot === slot && inArrFn(inventory, e.id))
+              .map(e => {
+                const invEntry = inventory.find(i => typeof i === 'object' ? (i.iid === e.id || i.id === e.id) : i === e.id);
+                const iid = (invEntry && typeof invEntry === 'object' && invEntry.iid) ? invEntry.iid : e.id;
+                return { ...e, iid };
+              }),
+            ...(slot === "weapon"
+              ? (inventory || [])
+                  .filter(i => {
+                    const id = typeof i === 'object' ? i.id : i;
+                    return gachaPool.some(g => g.id === id && g.type === "weapon");
+                  })
+                  .map(i => {
+                    const id = typeof i === 'object' ? i.id : i;
+                    const iid = (typeof i === 'object' && i.iid) ? i.iid : id;
+                    const base = gachaPool.find(g => g.id === id);
+                    return base ? { ...base, slot: "weapon", iid } : null;
+                  })
+                  .filter(Boolean)
+              : []),
           ];
           return (
             <div key={slot} style={{ position:"absolute", zIndex:10, top:pos.top, [isLeft?"left":"right"]:0, display:"flex", flexDirection:isLeft?"row":"row-reverse", alignItems:"center", gap:3 }}>
@@ -386,10 +411,10 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                     <div style={{ maxHeight:200, overflowY:"auto" }}>
                       {slotItems.map(item => {
                         const rc = rarityColors[item.rarity] || "#9a9088";
-                        const isEq = gear[slot] === item.id;
+                        const isEq = gear[slot] === item.iid || gear[slot] === item.id;
                         const setDef = item.set ? EQUIPMENT_SETS[item.set] : null;
                         return (
-                          <div key={item.id}
+                          <div key={item.iid || item.id}
                             onClick={e => { e.stopPropagation(); if (!isEq) { equipItem(item); } setOpenSlot(null); }}
                             onMouseEnter={e => { if (!isEq) e.currentTarget.style.background = rc+"11"; }}
                             onMouseLeave={e => { e.currentTarget.style.background = isEq ? rc+"18" : "transparent"; }}
@@ -402,7 +427,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                                 {setDef && <span style={{ color:setDef.color }}>· {setDef.name}</span>}
                                 {(() => {
                                   const itemKey = item.iid || item.id;
-                                  const lvl = (S.gearLevels||{})[itemKey] || (S.gearLevels||{})[slot] || 1;
+                                  const lvl = (S.gearLevels||{})[itemKey] || 1;
                                   const r = rollItemStats(item);
                                   const cs = calcStats({ ...item, level: lvl });
                                   const pv = cs[r.primary];
@@ -492,7 +517,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                 </div>
                 {slotItems.map(item => {
                   const rc = rarityColors[item.rarity] || "#9a9088";
-                  const isEquipped = gear[item.slot] === item.id;
+                  const isEquipped = gear[item.slot] === item.iid || gear[item.slot] === item.id;
                   const setDef = item.set ? EQUIPMENT_SETS[item.set] : null;
                   return (
                     <div key={item.id} onClick={() => isEquipped ? setSelectedItem(item) : equipItem(item)}
@@ -509,7 +534,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                       </div>
                       <div style={{ textAlign:"right", flexShrink:0 }}>
                         {isEquipped ? <div style={{ fontSize:8, color:rc, letterSpacing:1 }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#5a5248" }}>НАДЕТЬ</div>}
-                        <div style={{ fontSize:7, color:"#6a6058", marginTop:2 }}>Lv.{(S.gearLevels||{})[item.iid||item.id] || (S.gearLevels||{})[slot] || 1}</div>
+                        <div style={{ fontSize:7, color:"#6a6058", marginTop:2 }}>Lv.{(S.gearLevels||{})[item.iid||item.id] || 1}</div>
                       </div>
                     </div>
                   );
@@ -522,20 +547,32 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
 
       {/* Legacy gacha weapons */}
       {(() => {
-        const lw = gachaPool.filter(i => i.type === "weapon" && inArrFn(inventory, i.id));
-        if (!lw.length) return null;
+        // Собираем все экземпляры оружий из инвентаря
+        const weaponEntries = (inventory || [])
+          .filter(i => {
+            const id = typeof i === 'object' ? i.id : i;
+            return gachaPool.some(g => g.id === id && g.type === "weapon");
+          })
+          .map(i => {
+            const id = typeof i === 'object' ? i.id : i;
+            const iid = (typeof i === 'object' && i.iid) ? i.iid : id;
+            const base = gachaPool.find(g => g.id === id);
+            return base ? { ...base, iid } : null;
+          })
+          .filter(Boolean);
+        if (!weaponEntries.length) return null;
         return (
           <div style={{ marginBottom:10 }}>
             <div style={{ fontSize:7, letterSpacing:2, color:"#4a4438", marginBottom:4, display:"flex", alignItems:"center", gap:6 }}>⚔ ОРУЖИЕ (АРХИВ)</div>
-            {lw.map(item => {
+            {weaponEntries.map((item, idx) => {
               const rc = rarityColors[item.rarity] || "#9a9088";
-              const isEquipped = gear["weapon"] === item.id || (!gear["weapon"] && S.equipped?.weapon === item.id);
+              const isEquipped = gear["weapon"] === item.iid || gear["weapon"] === item.id || (!gear["weapon"] && S.equipped?.weapon === item.id);
               const ws = weaponStyles[item.id];
               return (
-                <div key={item.id} onClick={() => {
+                <div key={item.iid || item.id + "_" + idx} onClick={() => {
                   if (isEquipped) { unequipSlot("weapon"); } else {
                     setInsertSlot("weapon"); setTimeout(() => setInsertSlot(null), 600);
-                    setS(p => ({ ...p, gear:{ ...(p.gear||{}), weapon:item.id }, equipped:{ ...(p.equipped||{}), weapon:item.id } }));
+                    setS(p => ({ ...p, gear:{ ...(p.gear||{}), weapon:item.iid }, equipped:{ ...(p.equipped||{}), weapon:item.iid } }));
                     showDialogue("equipItem"); toastFn("ОРУЖИЕ УСТАНОВЛЕНО ◈");
                   }
                 }} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", marginBottom:5, border:"1px solid "+(isEquipped?rc+"55":"#1e1c18"), borderLeft:"2px solid "+(isEquipped?rc:"#221f1a"), background:isEquipped?"#141210":"#0d0b09", cursor:"pointer", transition:"all 0.2s" }}>
@@ -546,10 +583,11 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                       <span style={{ fontSize:7, color:rc, letterSpacing:1 }}>{item.rarity.toUpperCase()}</span>
                     </div>
                     <div style={{ fontSize:8, color:"#6a6058" }}>{item.desc}</div>
-                    {ws && <div style={{ fontSize:7, color:"#c8a882", marginTop:1 }}>+{ws.bonusPct}% MEM за миссии</div>}
+                    {ws && ws.bonusPct > 0 && <div style={{ fontSize:7, color:"#c8a882", marginTop:1 }}>+{ws.bonusPct}% MEM за миссии</div>}
                   </div>
-                  <div style={{ flexShrink:0 }}>
+                  <div style={{ flexShrink:0, textAlign:"right" }}>
                     {isEquipped ? <div style={{ fontSize:8, color:rc }}>◈ НАДЕТ</div> : <div style={{ fontSize:8, color:"#5a5248" }}>НАДЕТЬ</div>}
+                    <div style={{ fontSize:7, color:"#6a6058", marginTop:2 }}>Lv.{(S.gearLevels||{})[item.iid] || 1}</div>
                   </div>
                 </div>
               );
@@ -616,7 +654,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
             {(() => {
               const _slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
               const itemKey = selectedItem.iid || selectedItem.id;
-              const itemWithSlot = { ...selectedItem, slot: _slot, level: (S.gearLevels||{})[itemKey] || (S.gearLevels||{})[_slot] || 1 };
+              const itemWithSlot = { ...selectedItem, slot: _slot, level: (S.gearLevels||{})[itemKey] || 1 };
               const rolled  = rollItemStats(itemWithSlot);
               const cs      = calcStats(itemWithSlot);
               const allStats = [
@@ -656,7 +694,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
               {(() => {
               const slot = selectedItem.slot || (selectedItem.type === "weapon" ? "weapon" : "chest");
               const itemKey = selectedItem.iid || selectedItem.id;
-                const lvl  = (S.gearLevels||{})[itemKey] || (S.gearLevels||{})[slot] || 1;
+                const lvl  = (S.gearLevels||{})[itemKey] || 1;
                 const maxed = lvl >= 30;
                 return (
                   <>

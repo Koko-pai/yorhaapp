@@ -190,18 +190,25 @@ function mkState(o) {
     return e;
   });
 
-  // Миграция: переносим gearLevels с ключа slot на ключ iid/itemId
+  // Миграция: переносим gearLevels с ключа slot на ключ iid предмета
+  // и обновляем gear[slot] чтобы тоже указывал на iid
   const rawGear   = (o.gear && typeof o.gear === 'object') ? o.gear : {};
   const rawLevels = (o.gearLevels && typeof o.gearLevels === 'object') ? o.gearLevels : {};
   const migratedLevels = { ...rawLevels };
+  const migratedGear   = { ...rawGear };
   for (const slot of ["head","chest","arms","legs","weapon"]) {
+    const gearKey = rawGear[slot];
+    if (!gearKey) continue;
+    // Найти iid в уже мигрированном инвентаре
+    const invEntry = migratedInv.find(i => typeof i === 'object' && (i.iid === gearKey || i.id === gearKey));
+    const targetIid = (invEntry && invEntry.iid) ? invEntry.iid : gearKey;
+    // Обновить gear[slot] → iid
+    migratedGear[slot] = targetIid;
+    // Перенести уровень с slot-ключа на iid-ключ
     const slotLvl = rawLevels[slot];
-    if (slotLvl && slotLvl > 1) {
-      const gearKey = rawGear[slot];
-      if (gearKey && !rawLevels[gearKey]) {
-        migratedLevels[gearKey] = slotLvl;
-        delete migratedLevels[slot];
-      }
+    if (slotLvl && slotLvl > 1 && !rawLevels[targetIid]) {
+      migratedLevels[targetIid] = slotLvl;
+      delete migratedLevels[slot];
     }
   }
 
@@ -225,7 +232,7 @@ function mkState(o) {
     form:       (typeof o.form === "string" && FORMS[o.form]) ? o.form : "sentinel",
     boots:      typeof o.boots === "number"     ? o.boots + 1 : 1,
     inventory:  migratedInv,
-    gear:       rawGear,
+    gear:       migratedGear,
     equipped:   (o.equipped && typeof o.equipped === "object") ? o.equipped : { title: null, color: null, weapon: null },
     loreRead:        Array.isArray(o.loreRead)         ? o.loreRead        : [],
     totalFragsEarned: typeof o.totalFragsEarned === "number" ? o.totalFragsEarned : 0,
@@ -870,9 +877,10 @@ function UnlockFormOverlay({ fid, onClose }) {
 function GachaOverlay({ result, onClose }) {
   const rc = RARITY_COLORS[result.rarity] || "#9a9088";
   const typeLabels = { title:"ТИТУЛ", color:"СХЕМА", lore:"АРХИВ", weapon:"ОРУЖИЕ", equipment:"СНАРЯЖЕНИЕ" };
-  const isEquip = result.type === "equipment";
-  const isDupe  = result.isDupe;
-  const df      = result.dupeFrags || 0;
+  const isEquip  = result.type === "equipment";
+  const isWeapon = result.type === "weapon";
+  const isDupe   = result.isDupe;
+  const df       = result.dupeFrags || 0;
 
   // Show stats for equipment using rollItemStats (iid for unique roll)
   let statLines = [];
@@ -891,12 +899,12 @@ function GachaOverlay({ result, onClose }) {
     <div style={{ position:"fixed", inset:0, zIndex:9995, background:"rgba(0,0,0,0.96)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
       <div style={{ textAlign:"center", padding:32, maxWidth:320, width:"100%" }}>
         <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:16 }}>
-          {isDupe && !isEquip ? "АРХИВ ДАННЫХ — ДУБЛИКАТ" : "АРХИВ ДАННЫХ — ИЗВЛЕЧЕНИЕ"}
+          {isDupe && !isEquip && !isWeapon ? "АРХИВ ДАННЫХ — ДУБЛИКАТ" : "АРХИВ ДАННЫХ — ИЗВЛЕЧЕНИЕ"}
         </div>
-        <div style={{ fontSize:40, marginBottom:12, opacity: isDupe && !isEquip ? 0.4 : 1 }}>{result.icon}</div>
+        <div style={{ fontSize:40, marginBottom:12, opacity: isDupe && !isEquip && !isWeapon ? 0.4 : 1 }}>{result.icon}</div>
         <div style={{ fontSize:10, color:rc, letterSpacing:3, marginBottom:8 }}>
           {result.rarity.toUpperCase()} · {typeLabels[result.type] || "ПРЕДМЕТ"}
-          {isEquip && isDupe && <span style={{ color:"#9a9088" }}> · НОВЫЙ ЭКЗЕМПЛЯР</span>}
+          {(isEquip || isWeapon) && isDupe && <span style={{ color:"#9a9088" }}> · НОВЫЙ ЭКЗЕМПЛЯР</span>}
         </div>
         {isEquip && result.slot && (
           <div style={{ fontSize:9, color:"#7a7068", letterSpacing:2, marginBottom:8 }}>
@@ -924,15 +932,22 @@ function GachaOverlay({ result, onClose }) {
         )}
 
         {/* Non-equipment dupe: show frag conversion */}
-        {isDupe && !isEquip && (
+        {isDupe && !isEquip && !isWeapon && (
           <div style={{ background:"#0d0900", border:"1px solid #c8a88244", padding:"12px 16px", marginBottom:16 }}>
             <div style={{ fontSize:8, color:"#9a9088", letterSpacing:1, marginBottom:4 }}>ДУБЛИКАТ ОБНАРУЖЕН</div>
             <div style={{ fontSize:12, color:"#c8a882", fontWeight:700 }}>→ +{df} ◈ ФРАГМЕНТОВ</div>
             <div style={{ fontSize:7, color:"#6a6058", marginTop:4 }}>Предмет уже есть в архиве</div>
           </div>
         )}
-
-        {!isDupe && !isEquip && (
+        {/* Weapon dupe: added to inventory + frags */}
+        {isDupe && isWeapon && df > 0 && (
+          <div style={{ background:"#0d0900", border:"1px solid #c8a88244", padding:"12px 16px", marginBottom:16 }}>
+            <div style={{ fontSize:8, color:"#9a9088", letterSpacing:1, marginBottom:4 }}>НОВЫЙ ЭКЗЕМПЛЯР</div>
+            <div style={{ fontSize:12, color:"#c8a882", fontWeight:700 }}>+{df} ◈ ФРАГМЕНТОВ</div>
+            <div style={{ fontSize:7, color:"#6a6058", marginTop:4 }}>Уникальные характеристики добавлены в архив</div>
+          </div>
+        )}
+        {!isDupe && !isEquip && !isWeapon && (
           <div style={{ fontSize:11, color:"#7a7068", maxWidth:280, lineHeight:1.8, margin:"0 auto 24px", fontStyle: result.type === "lore" ? "italic" : "normal" }}>
             {result.lore || result.desc}
           </div>
@@ -943,7 +958,7 @@ function GachaOverlay({ result, onClose }) {
           onMouseEnter={e => { e.target.style.background = rc; e.target.style.color = "#0f0e0d"; }}
           onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = rc; }}
           style={{ background:"transparent", border:"1px solid "+rc, color:rc, padding:"10px 28px", fontSize:9, letterSpacing:3, cursor:"pointer", transition:"all 0.2s" }}>
-          {isDupe && !isEquip ? "КОНВЕРТИРОВАНО ◈" : "СОХРАНИТЬ В АРХИВ ◈"}
+          {isDupe && !isEquip && !isWeapon ? "КОНВЕРТИРОВАНО ◈" : "СОХРАНИТЬ В АРХИВ ◈"}
         </button>
       </div>
     </div>
@@ -1692,7 +1707,8 @@ export default function App() {
     // Calculate dupe status BEFORE setS using current inventory snapshot
     const alreadyHas = inArr(S.inventory || [], result.id);
     const isDupe = isEquipment ? alreadyHas : alreadyHas;
-    const dupeFrags = (!isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5) : 0;
+    const dupeFrags = (result.type === "weapon" && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5)
+                    : (!isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5) : 0;
 
     setS(prev => {
       const inv = [...(prev.inventory||[])];
@@ -1702,13 +1718,9 @@ export default function App() {
         const iid = result.id + "_" + Date.now();
         inv.push({ id: result.id, iid });
       } else if (result.type === "weapon") {
-        // Weapons: always add with unique iid so each drop has its own secondary stat
-        if (alreadyHas) {
-          // Dupe → frags only, no new entry
-        } else {
-          const iid = result.id + "_" + Date.now();
-          inv.push({ id: result.id, iid });
-        }
+        // Weapons: always add with unique iid (random secondary stat each drop) + frags if dupe
+        const iid = result.id + "_" + Date.now();
+        inv.push({ id: result.id, iid });
       } else {
         // Non-equipment (titles, colors, lore): dupe → convert to frags
         if (alreadyHas) {
