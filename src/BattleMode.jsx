@@ -229,6 +229,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const [enemyFlash, setEnemyFlash]         = useState({});    // uid -> true when attacking
   const [eventBoss, setEventBoss]           = useState(false);
   const [abilityFx, setAbilityFx]           = useState(null);  // null | { type, id }
+  const [upgradeAnim, setUpgradeAnim]       = useState(null);  // null | { slot, slotLabel, itemName, deltas, lvl }
 
   // ── All game state lives in ref (no stale closures) ──
   const G = useRef({
@@ -615,12 +616,40 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     const key  = gearItemKey(slot);
     const lvl  = gearLevels[key]||1;
     const cost = scaledCost(slot);
+
+    // Compute stat delta for animation
+    const gearKey = (S.gear||{})[slot];
+    const invEntry = gearKey ? (S.inventory||[]).find(i => typeof i === 'object' ? (i.iid === gearKey || i.id === gearKey) : i === gearKey) : null;
+    const baseId = invEntry && typeof invEntry === 'object' ? invEntry.id : gearKey;
+    const item = gearKey ? ((equipmentPool||[]).find(e=>e.id===baseId)||(gachaPool||[]).find(e=>e.id===baseId)) : null;
+    let deltas = [];
+    if (item) {
+      const before = calcStats({ ...item, slot: item.slot||slot, level: lvl });
+      const after  = calcStats({ ...item, slot: item.slot||slot, level: lvl+1 });
+      const STAT_LABELS = { atk:"АТК", hp:"HP", crit:"КРИТ.ШНС", critdmg:"КРИТ.УРОН" };
+      const STAT_UNITS  = { atk:"", hp:"", crit:"%", critdmg:"%" };
+      for (const st of ["atk","hp","crit","critdmg"]) {
+        const diff = Math.round((after[st] - before[st]) * 10) / 10;
+        if (diff > 0) deltas.push({ stat: STAT_LABELS[st], unit: STAT_UNITS[st], diff });
+      }
+    }
+
     setS(prev => {
       const mats = {...(prev.materials||{})};
       for (const [k,v] of Object.entries(cost)) mats[k]=Math.max(0,(mats[k]||0)-v);
       return { ...prev, materials:mats, gearLevels:{...(prev.gearLevels||{}), [key]:lvl+1} };
     });
-    if (onToast) onToast("◈ "+SLOT_LABELS[slot]+" → УР."+String((gearLevels[key]||1)+1));
+
+    setUpgradeAnim({
+      slot,
+      slotLabel: SLOT_LABELS[slot],
+      itemName: item?.name || SLOT_LABELS[slot],
+      deltas,
+      lvl: lvl+1,
+    });
+    setTimeout(() => setUpgradeAnim(null), 2200);
+
+    if (onToast) onToast("◈ "+SLOT_LABELS[slot]+" → УР."+String(lvl+1));
   };
 
   // ═══════════════════════════════════
@@ -657,7 +686,12 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         // DATA CORRUPTION — фиолетовые статические волны от юнита к цели
         "@keyframes corruptFlash{0%{opacity:0}20%{opacity:1}80%{opacity:0.6}100%{opacity:0}}" +
         "@keyframes corruptGlitch{0%{transform:translateX(0) skewX(0)}15%{transform:translateX(-4px) skewX(-3deg)}30%{transform:translateX(3px) skewX(2deg)}50%{transform:translateX(-2px) skewX(0)}100%{transform:translateX(0) skewX(0)}}" +
-        "@keyframes corruptRay{0%{opacity:0.8;width:0}100%{opacity:0;width:75%}}"
+        "@keyframes corruptRay{0%{opacity:0.8;width:0}100%{opacity:0;width:75%}}" +
+        // UPGRADE ANIMATION
+        "@keyframes upgradeOverlay{0%{opacity:0;transform:scale(0.88)}10%{opacity:1;transform:scale(1.04)}20%{transform:scale(1)}85%{opacity:1}100%{opacity:0;transform:scale(0.95)}}" +
+        "@keyframes upgradeStat{0%{opacity:0;transform:translateY(12px)}20%{opacity:1;transform:translateY(0)}85%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}" +
+        "@keyframes upgradePulse{0%,100%{box-shadow:0 0 0px #a09080}50%{box-shadow:0 0 18px #a09080aa}}" +
+        "@keyframes upgradeScanline{0%{top:0}100%{top:100%}}"
       }</style>
 
       {/* Top bar */}
@@ -1173,6 +1207,68 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── UPGRADE ANIMATION OVERLAY ── */}
+      {upgradeAnim && (
+        <div style={{
+          position:"fixed", inset:0, display:"flex", alignItems:"center", justifyContent:"center",
+          zIndex:9999, pointerEvents:"none",
+        }}>
+          <div style={{
+            background:"#0f0e0d",
+            border:"1px solid #3a3228",
+            borderLeft:"2px solid #a09080",
+            padding:"22px 28px",
+            minWidth:200,
+            animation:"upgradeOverlay 2.2s ease forwards",
+            position:"relative",
+            overflow:"hidden",
+            fontFamily:FF,
+          }}>
+            {/* scanline sweep */}
+            <div style={{
+              position:"absolute", left:0, right:0, height:2,
+              background:"linear-gradient(90deg,transparent,#a0908044,transparent)",
+              animation:"upgradeScanline 0.6s linear 2",
+              pointerEvents:"none",
+            }}/>
+            {/* header */}
+            <div style={{fontSize:7,letterSpacing:3,color:"#5a5248",marginBottom:10,animation:"upgradePulse 1s ease 3"}}>
+              МОДУЛЬ ПРОКАЧАН
+            </div>
+            <div style={{fontSize:10,color:"#a09080",letterSpacing:1,marginBottom:2}}>
+              {SLOT_ICONS[upgradeAnim.slot]} {upgradeAnim.slotLabel}
+            </div>
+            <div style={{fontSize:8,color:"#5a5248",marginBottom:14,letterSpacing:1}}>
+              {upgradeAnim.itemName}
+            </div>
+            <div style={{fontSize:11,color:"#c8a882",fontWeight:700,marginBottom:14,letterSpacing:2}}>
+              → УР. {upgradeAnim.lvl}
+            </div>
+            {/* stat deltas */}
+            {upgradeAnim.deltas.length > 0 ? (
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {upgradeAnim.deltas.map((d, i) => (
+                  <div key={d.stat} style={{
+                    display:"flex", justifyContent:"space-between", alignItems:"center",
+                    animation:`upgradeStat 2.2s ease ${0.08 + i*0.1}s forwards`,
+                    opacity:0,
+                  }}>
+                    <span style={{fontSize:8,color:"#7a7068",letterSpacing:1}}>{d.stat}</span>
+                    <span style={{fontSize:10,color:"#44cc88",fontWeight:700,letterSpacing:1}}>
+                      +{d.diff}{d.unit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{fontSize:8,color:"#44cc88",animation:"upgradeStat 2.2s ease 0.1s forwards",opacity:0}}>
+                ◈ ХАРАКТЕРИСТИКИ УЛУЧШЕНЫ
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
