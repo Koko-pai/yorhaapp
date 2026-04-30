@@ -212,15 +212,20 @@ function getEquippedItems(gear, inventory, gachaPool) {
     const gearKey = gear[slot]; // may be iid or plain id
     if (!gearKey) continue;
 
-    // Find inventory entry matching by iid or id to get the actual iid
-    const invItem = inv.find(i => typeof i === 'object' && (i.iid === gearKey || i.id === gearKey))
+    // Ищем запись в инвентаре: сначала по iid, потом по id
+    const invItem = inv.find(i => typeof i === 'object' && i.iid === gearKey)
+                 || inv.find(i => typeof i === 'object' && i.id === gearKey)
                  || inv.find(i => (typeof i === 'object' ? i.id : i) === gearKey);
-    const iid = (invItem && typeof invItem === 'object' && invItem.iid) ? invItem.iid : gearKey;
-    const baseId = (invItem && typeof invItem === 'object') ? invItem.id : gearKey;
 
-    // Find base item definition
-    const base = EQUIPMENT_POOL.find(e => e.id === gearKey || e.id === baseId)
-              || gp.find(e => e.id === gearKey || e.id === baseId);
+    const iid    = (invItem && typeof invItem === 'object' && invItem.iid) ? invItem.iid : gearKey;
+    const baseId = (invItem && typeof invItem === 'object' && invItem.id)  ? invItem.id  : gearKey;
+
+    // Ищем базовый предмет: сначала по baseId, потом по gearKey как запасной
+    const base = EQUIPMENT_POOL.find(e => e.id === baseId)
+              || gp.find(e => e.id === baseId)
+              || EQUIPMENT_POOL.find(e => e.id === gearKey)
+              || gp.find(e => e.id === gearKey);
+
     if (base) {
       result[slot] = { ...base, slot: base.slot || slot, level: 1, iid };
     }
@@ -265,13 +270,19 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
   const gear      = S.gear || {};
   const inventory = S.inventory || [];
 
-  const ownedEquipment = EQUIPMENT_POOL
-    .filter(e => inArrFn(inventory, e.id))
-    .map(e => {
-      const invEntry = inventory.find(i => typeof i === 'object' ? (i.iid === e.id || i.id === e.id) : i === e.id);
-      const iid = (invEntry && typeof invEntry === 'object' && invEntry.iid) ? invEntry.iid : e.id;
-      return { ...e, iid };
-    });
+  // Каждый экземпляр снаряжения из инвентаря — отдельная строка
+  const ownedEquipment = inventory
+    .filter(i => {
+      const id = typeof i === 'object' ? i.id : i;
+      return EQUIPMENT_POOL.some(e => e.id === id);
+    })
+    .map(i => {
+      const id  = typeof i === 'object' ? i.id  : i;
+      const iid = typeof i === 'object' ? i.iid : id;
+      const base = EQUIPMENT_POOL.find(e => e.id === id);
+      return base ? { ...base, iid } : null;
+    })
+    .filter(Boolean);
 
   const equipItem = (item) => {
     const prevBonuses = getSetBonuses(gear, inventory, gachaPool);
@@ -352,22 +363,29 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
           const isOpen = openSlot === slot;
           // Предметы доступные для этого слота
           const slotItems = [
-            ...EQUIPMENT_POOL
-              .filter(e => e.slot === slot && inArrFn(inventory, e.id))
-              .map(e => {
-                const invEntry = inventory.find(i => typeof i === 'object' ? (i.iid === e.id || i.id === e.id) : i === e.id);
-                const iid = (invEntry && typeof invEntry === 'object' && invEntry.iid) ? invEntry.iid : e.id;
-                return { ...e, iid };
-              }),
+            // Все экземпляры снаряжения из инвентаря для этого слота
+            ...inventory
+              .filter(i => {
+                const id = typeof i === 'object' ? i.id : i;
+                return EQUIPMENT_POOL.some(e => e.id === id && e.slot === slot);
+              })
+              .map(i => {
+                const id  = typeof i === 'object' ? i.id  : i;
+                const iid = typeof i === 'object' ? i.iid : id;
+                const base = EQUIPMENT_POOL.find(e => e.id === id);
+                return base ? { ...base, iid } : null;
+              })
+              .filter(Boolean),
+            // Оружия из гача-пула (все экземпляры)
             ...(slot === "weapon"
-              ? (inventory || [])
+              ? inventory
                   .filter(i => {
                     const id = typeof i === 'object' ? i.id : i;
                     return gachaPool.some(g => g.id === id && g.type === "weapon");
                   })
                   .map(i => {
-                    const id = typeof i === 'object' ? i.id : i;
-                    const iid = (typeof i === 'object' && i.iid) ? i.iid : id;
+                    const id  = typeof i === 'object' ? i.id  : i;
+                    const iid = typeof i === 'object' ? i.iid : id;
                     const base = gachaPool.find(g => g.id === id);
                     return base ? { ...base, slot: "weapon", iid } : null;
                   })
@@ -520,7 +538,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
                   const isEquipped = gear[item.slot] === item.iid || gear[item.slot] === item.id;
                   const setDef = item.set ? EQUIPMENT_SETS[item.set] : null;
                   return (
-                    <div key={item.id} onClick={() => isEquipped ? setSelectedItem(item) : equipItem(item)}
+                    <div key={item.iid || item.id} onClick={() => isEquipped ? setSelectedItem(item) : equipItem(item)}
                       style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 10px", marginBottom:5, border:"1px solid "+(isEquipped?rc+"55":"#1e1c18"), borderLeft:"2px solid "+(isEquipped?rc:"#221f1a"), background:isEquipped?"#141210":"#0d0b09", cursor:"pointer", transition:"all 0.2s" }}>
                       <span style={{ fontSize:16, color:rc }}>{item.icon}</span>
                       <div style={{ flex:1, minWidth:0 }}>
@@ -602,7 +620,14 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
         {Object.entries(EQUIPMENT_SETS).map(([setId, setDef]) => {
           const setItems      = EQUIPMENT_POOL.filter(e => e.set === setId);
           const ownedCount    = setItems.filter(e => inArrFn(inventory, e.id)).length;
-          const equippedCount = setItems.filter(e => gear[e.slot] === e.id).length;
+          // gear[slot] может быть iid — резолвим через инвентарь
+          const isSlotEquipped = (slot) => {
+            const gk = gear[slot]; if (!gk) return false;
+            const inv = inventory.find(i => typeof i === 'object' ? (i.iid === gk || i.id === gk) : i === gk);
+            const baseId = inv && typeof inv === 'object' ? inv.id : gk;
+            return baseId;
+          };
+          const equippedCount = setItems.filter(e => isSlotEquipped(e.slot) === e.id).length;
           return (
             <div key={setId} style={{ marginBottom:16, paddingBottom:16, borderBottom:"1px solid #0d0d0d" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
@@ -616,7 +641,7 @@ export default function EquipmentTab({ S, setS, accent, toastFn, showDialogue, f
               <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
                 {setItems.map(item => {
                   const owned    = inArrFn(inventory, item.id);
-                  const equipped = gear[item.slot] === item.id;
+                  const equipped = isSlotEquipped(item.slot) === item.id;
                   const rc       = rarityColors[item.rarity] || "#9a9088";
                   return (
                     <div key={item.id} style={{ fontSize:8, padding:"3px 8px", border:"1px solid "+(equipped?rc:owned?rc+"44":"#1e1c18"), color:equipped?rc:owned?rc+"aa":"#4a4438", background:equipped?rc+"11":"#111009" }}>

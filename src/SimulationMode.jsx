@@ -6,7 +6,11 @@ import { useEffect, useRef, useState } from "react";
 
 const COLS = 11, ROWS = 11;
 const LERP_SPEED = 0.18;
-const IMG_URL = "https://i.ibb.co/DgMDtFFk/nr-10h-sentinel-savior-Photoroom.png";
+const FORM_IMGS = {
+  sentinel: "https://i.ibb.co/DgMDtFFk/nr-10h-sentinel-savior-Photoroom.png",
+  abstract: "https://i.ibb.co/kgb7fW9d/nr-10h-abstract-savior-Photoroom.png",
+  reborn:   "https://i.ibb.co/4wPkwGsJ/nr-10h-reborn-warden-Photoroom.png",
+};
 
 // Конфиг сложности по уровню миссии
 function getSimConfig(threat, isEvent) {
@@ -59,7 +63,7 @@ const bootLines = [
   { t: 2100, cls: "hi",   txt: "> ПРОТОКОЛ ИЗВЛЕЧЕНИЯ ГОТОВ К ЗАПУСКУ" },
 ];
 
-export default function SimulationMode({ mission, onComplete, onClose }) {
+export default function SimulationMode({ mission, fid, onComplete, onClose }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const rafRef = useRef(null);
@@ -626,7 +630,7 @@ export default function SimulationMode({ mission, onComplete, onClose }) {
             </div>
             {/* Арт */}
             <div style={{ height: 100, display:"flex", alignItems:"flex-end", justifyContent:"center" }}>
-              <img src={IMG_URL} style={{ height: 90, objectFit:"contain", filter: win ? "drop-shadow(0 0 8px rgba(74,144,112,0.3))" : "drop-shadow(0 0 8px rgba(180,40,40,0.2)) grayscale(0.5)" }} alt="10H"/>
+              <img src={FORM_IMGS[fid] || FORM_IMGS.sentinel} style={{ height: 90, objectFit:"contain", filter: win ? "drop-shadow(0 0 8px rgba(74,144,112,0.3))" : "drop-shadow(0 0 8px rgba(180,40,40,0.2)) grayscale(0.5)" }} alt="10H"/>
             </div>
             <div style={{ fontSize: 15, color: "#d8d0c4", letterSpacing: 2, textAlign:"center" }}>
               {titles[result.outcome]}

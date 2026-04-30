@@ -196,7 +196,7 @@ function mkState(o) {
   const rawLevels = (o.gearLevels && typeof o.gearLevels === 'object') ? o.gearLevels : {};
   const migratedLevels = { ...rawLevels };
   const migratedGear   = { ...rawGear };
-  for (const slot of ["head","chest","arms","legs","weapon"]) {
+  for (const slot of ["head","chest","gloves","boots","weapon"]) {
     const gearKey = rawGear[slot];
     if (!gearKey) continue;
     // Найти iid в уже мигрированном инвентаре
@@ -263,23 +263,44 @@ function loadState() {
 }
 
 function saveState(s) {
-  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e) {}
-  try { if (window.storage) window.storage.set(KEY, JSON.stringify(s)).catch(()=>{}); } catch(e) {}
+  const payload = JSON.stringify({ ...s, _savedAt: Date.now() });
+  try { localStorage.setItem(KEY, payload); } catch(e) {}
+  try { if (window.storage) window.storage.set(KEY, payload).catch(()=>{}); } catch(e) {}
 }
 
 async function loadStateAsync() {
+  let localRaw = null;
+  let cloudRaw = null;
+  try { localRaw = localStorage.getItem(KEY); } catch(e) {}
   try {
     if (window.storage) {
       const saved = await window.storage.get(KEY);
-      if (saved && saved.value) return mkState(JSON.parse(saved.value));
+      if (saved && saved.value) cloudRaw = saved.value;
     }
   } catch(e) {}
-  return loadState();
+  // Берём более свежее сохранение по _savedAt
+  let best = null;
+  try {
+    const localParsed = localRaw ? JSON.parse(localRaw) : null;
+    const cloudParsed = cloudRaw ? JSON.parse(cloudRaw) : null;
+    const lt = localParsed?._savedAt || 0;
+    const ct = cloudParsed?._savedAt || 0;
+    best = ct > lt ? cloudParsed : (localParsed || cloudParsed);
+  } catch(e) {}
+  return best ? mkState(best) : mkState({});
 }
 
 function inArr(arr, val) {
   if (!Array.isArray(arr)) return false;
   return arr.some(e => (typeof e === 'object' ? e.id : e) === val);
+}
+
+// Резолвит iid → baseId через инвентарь (для поиска в пулах по базовому id)
+function resolveBaseId(keyOrIid, inventory) {
+  if (!keyOrIid) return keyOrIid;
+  const inv = Array.isArray(inventory) ? inventory : [];
+  const entry = inv.find(i => typeof i === 'object' && (i.iid === keyOrIid || i.id === keyOrIid));
+  return (entry && typeof entry === 'object') ? entry.id : keyOrIid;
 }
 // Count how many times an id appears in inventory
 function invCount(arr, id) {
@@ -894,6 +915,18 @@ function GachaOverlay({ result, onClose }) {
       .map(([k,v]) => ({ key:k, val:v, label:STAT_LABEL[k], suffix:STAT_SUFFIX[k], isPrimary: k===prim }))
       .sort((a,b) => (b.isPrimary?1:0)-(a.isPrimary?1:0));
   }
+  // Show ATK + random secondary for weapon
+  let weaponStatLines = [];
+  if (isWeapon) {
+    const rolled = rollItemStats({ ...result, slot:"weapon", iid: result.iid || result.id });
+    const cs = calcStats({ ...result, slot:"weapon", level:1, iid: result.iid || result.id });
+    const STAT_LABEL  = { atk:"АТК", hp:"HP", crit:"КРИТ.ШНС", critdmg:"КРИТ.УРОН" };
+    const STAT_SUFFIX = { atk:"", hp:"", crit:"%", critdmg:"%" };
+    weaponStatLines = Object.entries(cs)
+      .filter(([k, v]) => v > 0 && STAT_LABEL[k])
+      .map(([k, v]) => ({ key:k, val:v, label:STAT_LABEL[k], suffix:STAT_SUFFIX[k], isPrimary: k === rolled.primary }))
+      .sort((a,b) => (b.isPrimary?1:0) - (a.isPrimary?1:0));
+  }
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:9995, background:"rgba(0,0,0,0.96)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace" }}>
@@ -913,6 +946,24 @@ function GachaOverlay({ result, onClose }) {
         )}
         <div style={{ fontSize:20, fontWeight:700, color:"#d8d0c4", letterSpacing:2, marginBottom:12 }}>{result.name}</div>
 
+        {/* Weapon stats preview */}
+        {isWeapon && weaponStatLines.length > 0 && (
+          <div style={{ background:"#181614", border:"1px solid #221f1a", padding:"10px 16px", marginBottom:16, textAlign:"left" }}>
+            <div style={{ fontSize:7, color:"#5a5248", letterSpacing:2, marginBottom:8 }}>ХАРАКТЕРИСТИКИ</div>
+            {weaponStatLines.map(({ key, val, label, suffix, isPrimary }) => (
+              <div key={key} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:4 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                  <span style={{ fontSize:8, color: isPrimary ? rc : "#302b24" }}>{isPrimary ? "◆" : "·"}</span>
+                  <span style={{ fontSize:8, color: isPrimary ? "#9a9088" : "#6a6058", letterSpacing:1 }}>{label}</span>
+                </div>
+                <span style={{ fontSize: isPrimary ? 10 : 8, fontWeight: isPrimary ? 700 : 400, color: isPrimary ? rc : "#7a7068" }}>
+                  {val}{suffix}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Equipment stats preview */}
         {isEquip && statLines.length > 0 && (
           <div style={{ background:"#181614", border:"1px solid #221f1a", padding:"10px 16px", marginBottom:16, textAlign:"left" }}>
@@ -928,6 +979,15 @@ function GachaOverlay({ result, onClose }) {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Equipment dupe: added to inventory + frags */}
+        {isDupe && isEquip && df > 0 && (
+          <div style={{ background:"#0d0900", border:"1px solid #c8a88244", padding:"12px 16px", marginBottom:16 }}>
+            <div style={{ fontSize:8, color:"#9a9088", letterSpacing:1, marginBottom:4 }}>НОВЫЙ ЭКЗЕМПЛЯР</div>
+            <div style={{ fontSize:12, color:"#c8a882", fontWeight:700 }}>+{df} ◈ ФРАГМЕНТОВ</div>
+            <div style={{ fontSize:7, color:"#6a6058", marginTop:4 }}>Уникальные характеристики добавлены в архив</div>
           </div>
         )}
 
@@ -1522,8 +1582,8 @@ export default function App() {
       { id:"syn10",icon:"◆",  t:"МАСТЕР СИНТЕЗА",      ok: s => (s.syn||0) >= 10 },
       // Гача
       { id:"g1",   icon:"▲",  t:"ПЕРВОЕ ИЗВЛЕЧЕНИЕ",   ok: s => (s.inventory||[]).length >= 1 },
-      { id:"ep1",  icon:"▲",  t:"ЭПИЧЕСКИЙ АРХИВ",     ok: s => (s.inventory||[]).some(id => { const item = GACHA_POOL.find(i => i.id === id); return item && item.rarity === "epic"; }) },
-      { id:"lg1",  icon:"★",  t:"ЛЕГЕНДАРНЫЙ АРХИВ",   ok: s => (s.inventory||[]).some(id => { const item = GACHA_POOL.find(i => i.id === id); return item && item.rarity === "legendary"; }) },
+      { id:"ep1",  icon:"▲",  t:"ЭПИЧЕСКИЙ АРХИВ",     ok: s => (s.inventory||[]).some(e => { const id = typeof e === 'object' ? e.id : e; const item = GACHA_POOL.find(i => i.id === id); return item && item.rarity === "epic"; }) },
+      { id:"lg1",  icon:"★",  t:"ЛЕГЕНДАРНЫЙ АРХИВ",   ok: s => (s.inventory||[]).some(e => { const id = typeof e === 'object' ? e.id : e; const item = GACHA_POOL.find(i => i.id === id); return item && item.rarity === "legendary"; }) },
       { id:"lor",  icon:"◇",  t:"ХРАНИТЕЛЬ ИСТОРИИ",   ok: s => GACHA_POOL.filter(i => i.type==="lore").every(i => inArr(s.inventory||[], i.id)) },
       { id:"wpn",  icon:"◇",  t:"АРСЕНАЛ YoRHa",       ok: s => GACHA_POOL.filter(i => i.type==="weapon").every(i => inArr(s.inventory||[], i.id)) },
       { id:"eq3",  icon:"★",  t:"ПОЛНАЯ ЭКИПИРОВКА",   ok: s => !!(s.equipped && s.equipped.title && s.equipped.color && s.equipped.weapon) },
@@ -1558,7 +1618,7 @@ export default function App() {
       if (m.isLogic) { reward.memory = Math.round(reward.memory * 1.6); reward.frags = reward.frags + 2; }
       // Weapon bonus — check gear.weapon first, fallback to equipped.weapon
       const gear = prev.gear || {};
-      const wid = gear.weapon || (prev.equipped && prev.equipped.weapon);
+      const wid = resolveBaseId(gear.weapon || (prev.equipped && prev.equipped.weapon), prev.inventory);
       const ws = wid ? (WEAPON_STYLES[wid] || EQUIPMENT_WEAPON_STYLES[wid]) : null;
       let memBonus = 0;
       if (ws) {
@@ -1639,7 +1699,7 @@ export default function App() {
 
       // Бонус оружия и сета — применяем только на full/partial
       const gear = prev.gear || {};
-      const wid = gear.weapon || (prev.equipped && prev.equipped.weapon);
+      const wid = resolveBaseId(gear.weapon || (prev.equipped && prev.equipped.weapon), prev.inventory);
       const ws = wid ? (WEAPON_STYLES[wid] || EQUIPMENT_WEAPON_STYLES[wid]) : null;
       let memBonus = 0;
       if (ws && simResult.outcome !== "fail") {
@@ -1708,19 +1768,19 @@ export default function App() {
     const alreadyHas = inArr(S.inventory || [], result.id);
     const isDupe = isEquipment ? alreadyHas : alreadyHas;
     const dupeFrags = (result.type === "weapon" && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5)
+                    : (isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5)
                     : (!isEquipment && alreadyHas) ? (DUPE_FRAGS[result.rarity] || 5) : 0;
+
+    // Генерируем iid заранее чтобы передать в оверлей для корректного отображения статов
+    const newIid = (isEquipment || result.type === "weapon") ? result.id + "_" + Date.now() : null;
 
     setS(prev => {
       const inv = [...(prev.inventory||[])];
 
       if (isEquipment) {
-        // Equipment: always add with unique iid (different stats each time)
-        const iid = result.id + "_" + Date.now();
-        inv.push({ id: result.id, iid });
+        inv.push({ id: result.id, iid: newIid });
       } else if (result.type === "weapon") {
-        // Weapons: always add with unique iid (random secondary stat each drop) + frags if dupe
-        const iid = result.id + "_" + Date.now();
-        inv.push({ id: result.id, iid });
+        inv.push({ id: result.id, iid: newIid });
       } else {
         // Non-equipment (titles, colors, lore): dupe → convert to frags
         if (alreadyHas) {
@@ -1739,8 +1799,8 @@ export default function App() {
       return ns;
     });
 
-    // Pass dupe info to overlay
-    setGachaResult({ ...result, isDupe, dupeFrags });
+    // Pass dupe info and iid to overlay
+    setGachaResult({ ...result, isDupe, dupeFrags, iid: newIid });
     setTimeout(() => showDialogue("gacha"), 200);
   }, [S.frags, S.inventory, toast$, runChecks]);
 
@@ -1955,7 +2015,9 @@ export default function App() {
   const inventory = S.inventory || [];
 
   const equippedTitle  = S.equipped && S.equipped.title  ? GACHA_POOL.find(i => i.id === S.equipped.title)  : null;
-  const equippedWeapon = S.equipped && S.equipped.weapon ? GACHA_POOL.find(i => i.id === S.equipped.weapon) : null;
+  const equippedWeapon = S.gear?.weapon
+    ? GACHA_POOL.find(i => i.id === resolveBaseId(S.gear.weapon, S.inventory))
+    : (S.equipped?.weapon ? GACHA_POOL.find(i => i.id === S.equipped.weapon) : null);
 
   return (
     <div style={{ background:"#0f0e0d", minHeight:"100vh", fontFamily:"'Courier New',monospace", color:"#d8d0c4", maxWidth:480, margin:"0 auto", position:"relative" }}>
@@ -2073,6 +2135,7 @@ export default function App() {
       {simulationMission && (
         <SimulationMode
           mission={simulationMission}
+          fid={fid}
           onComplete={(simResult) => {
             const m = simulationMission;
             setSimulationMission(null);
@@ -2355,7 +2418,15 @@ export default function App() {
               {inventory.length > 0 && (
                 <div>
                   <div style={{ fontSize:8, letterSpacing:3, color:"#5a5248", marginBottom:10 }}>КОЛЛЕКЦИЯ [{inventory.length}]</div>
-                  {GACHA_POOL.filter(item => inArr(inventory, item.id)).map(item => {
+                  {(() => {
+                    // Для оружий — каждый экземпляр отдельно; для остальных — уникально по id
+                    const nonWeapon = GACHA_POOL.filter(item => item.type !== "weapon" && inArr(inventory, item.id));
+                    const weaponInstances = inventory
+                      .filter(e => { const id = typeof e === 'object' ? e.id : e; return GACHA_POOL.some(g => g.id === id && g.type === "weapon"); })
+                      .map(e => { const id = typeof e === 'object' ? e.id : e; const iid = typeof e === 'object' ? e.iid : id; return { ...GACHA_POOL.find(g => g.id === id), iid }; })
+                      .filter(Boolean);
+                    const allItems = [...nonWeapon.map(i => ({...i, iid: null})), ...weaponInstances];
+                    return allItems.map(item => {
                     const rc = RARITY_COLORS[item.rarity] || "#9a9088";
                     const typeLabels = { title:"ТИТУЛ", color:"СХЕМА", lore:"АРХИВ", weapon:"ОРУЖИЕ" };
                     const isWeapon = item.type === "weapon";
@@ -2364,13 +2435,13 @@ export default function App() {
                       (item.type === "color" && S.equipped.color === item.id)
                     );
                     const weaponEquipped = isWeapon && (
-                      (S.gear && S.gear.weapon === item.id) ||
-                      (!S.gear?.weapon && S.equipped?.weapon === item.id)
+                      (item.iid && S.gear?.weapon === item.iid) ||
+                      resolveBaseId(S.gear?.weapon, S.inventory) === item.id
                     );
                     return (
-                      <div key={item.id}
+                      <div key={item.iid || item.id}
                         onClick={() => {
-                          if (isWeapon) return; // оружие надевается только во вкладке Броня
+                          if (isWeapon) return;
                           setS(p => {
                             const eq = { ...(p.equipped || {}) };
                             if (item.type === "title") eq.title = isEquipped ? null : item.id;
@@ -2390,12 +2461,17 @@ export default function App() {
                             {item.desc}
                             {isWeapon && WEAPON_STYLES[item.id] ? <span style={{color:"#c8a882"}}> · +{WEAPON_STYLES[item.id].bonusPct}% к памяти</span> : null}
                           </div>
-                          {isWeapon && <div style={{ fontSize:7, color:"#4a4438", marginTop:3, letterSpacing:1 }}>⚔ Надевается во вкладке БРОНЯ</div>}
+                          {isWeapon && item.iid && (
+                            <div style={{ fontSize:7, color:"#5a5248", marginTop:2, letterSpacing:1 }}>
+                              Lv.{(S.gearLevels||{})[item.iid] || 1}
+                            </div>
+                          )}
+                          {isWeapon && <div style={{ fontSize:7, color:"#4a4438", marginTop:1, letterSpacing:1 }}>⚔ Надевается во вкладке БРОНЯ</div>}
                         </div>
                         {(isEquipped || weaponEquipped) && <span style={{ color:rc, fontSize:10, letterSpacing:1 }}>◈</span>}
                       </div>
                     );
-                  })}
+                  })})()}
                 </div>
               )}
 
