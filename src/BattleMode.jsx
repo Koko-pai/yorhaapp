@@ -229,6 +229,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
   const [enemyFlash, setEnemyFlash]         = useState({});    // uid -> true when attacking
   const [eventBoss, setEventBoss]           = useState(false);
   const [abilityFx, setAbilityFx]           = useState(null);  // null | { type, id }
+  const [upgradeAnim, setUpgradeAnim]       = useState(null);  // null | { slot, itemName, deltas, lvl }
 
   // ── All game state lives in ref (no stale closures) ──
   const G = useRef({
@@ -615,8 +616,30 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     const key  = gearItemKey(slot);
     const lvl  = gearLevels[key]||1;
     const cost = scaledCost(slot);
+
+    // Вычисляем дельту характеристик для анимации
+    const gearKey  = (S.gear||{})[slot];
+    const invEntry = gearKey ? (S.inventory||[]).find(i => typeof i==="object" ? (i.iid===gearKey||i.id===gearKey) : i===gearKey) : null;
+    const baseId   = invEntry ? (typeof invEntry==="object" ? invEntry.id : invEntry) : gearKey;
+    const poolItem = baseId ? ((equipmentPool||[]).find(e=>e.id===baseId)||(gachaPool||[]).find(e=>e.id===baseId)) : null;
+    // Мержим: poolItem даёт name/rarity/slot/stats, invEntry даёт iid/rolledStats
+    const fullItem = poolItem
+      ? { ...poolItem, ...(typeof invEntry==="object" ? invEntry : {}), slot: poolItem.slot||slot }
+      : null;
+
+    const STAT_LABELS = { atk:"АТК", hp:"HP", crit:"КРИТ.ШНС", critdmg:"КРИТ.УРОН" };
+    const STAT_UNITS  = { atk:"",    hp:"",   crit:"%",          critdmg:"%" };
+    let deltas = [];
+    if (fullItem) {
+      const before = calcStats({ ...fullItem, level: lvl });
+      const after  = calcStats({ ...fullItem, level: lvl + 1 });
+      for (const st of ["atk","hp","crit","critdmg"]) {
+        const diff = Math.round((after[st] - before[st]) * 10) / 10;
+        if (diff > 0) deltas.push({ stat: STAT_LABELS[st], unit: STAT_UNITS[st], diff });
+      }
+    }
+
     setS(prev => {
-      // Пересчитываем key из актуального prev.gear чтобы избежать stale closure
       const prevKey = (prev.gear||{})[slot] || slot;
       const prevLvl = (prev.gearLevels||{})[prevKey] || 1;
       if (prevLvl >= 30) return prev;
@@ -624,7 +647,13 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
       for (const [k,v] of Object.entries(cost)) mats[k]=Math.max(0,(mats[k]||0)-v);
       return { ...prev, materials:mats, gearLevels:{...(prev.gearLevels||{}), [prevKey]:prevLvl+1} };
     });
-    if (onToast) onToast("◈ "+SLOT_LABELS[slot]+" → УР."+String((gearLevels[key]||1)+1));
+
+    setUpgradeAnim({
+      slot,
+      itemName: fullItem?.name || SLOT_LABELS[slot],
+      deltas,
+      lvl: lvl + 1,
+    });
   };
 
   // ═══════════════════════════════════
@@ -661,7 +690,11 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
         // DATA CORRUPTION — фиолетовые статические волны от юнита к цели
         "@keyframes corruptFlash{0%{opacity:0}20%{opacity:1}80%{opacity:0.6}100%{opacity:0}}" +
         "@keyframes corruptGlitch{0%{transform:translateX(0) skewX(0)}15%{transform:translateX(-4px) skewX(-3deg)}30%{transform:translateX(3px) skewX(2deg)}50%{transform:translateX(-2px) skewX(0)}100%{transform:translateX(0) skewX(0)}}" +
-        "@keyframes corruptRay{0%{opacity:0.8;width:0}100%{opacity:0;width:75%}}"
+        "@keyframes corruptRay{0%{opacity:0.8;width:0}100%{opacity:0;width:75%}}" +
+        "@keyframes upgradeFadeIn{0%{opacity:0;transform:scale(0.9)}12%{opacity:1;transform:scale(1.03)}22%{transform:scale(1)}100%{opacity:1}}" +
+        "@keyframes upgradeStatIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}" +
+        "@keyframes upgradeScan{0%{top:-2px;opacity:0.9}100%{top:100%;opacity:0}}" +
+        "@keyframes upgradeShimmer{0%{left:-80%}100%{left:130%}}"
       }</style>
 
       {/* Top bar */}
@@ -1177,6 +1210,60 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── UPGRADE ANIMATION OVERLAY ── */}
+      {upgradeAnim && (
+        <div style={{
+          position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center",
+          zIndex:30, background:"rgba(0,0,0,0.72)", fontFamily:FF,
+        }}>
+          <div style={{
+            background:"#0f0e0d", border:"1px solid #3a3228", borderLeft:"2px solid #a09080",
+            padding:"24px 28px", minWidth:210, position:"relative", overflow:"hidden",
+            animation:"upgradeFadeIn 0.3s ease forwards",
+          }}>
+            {/* scanline */}
+            <div style={{position:"absolute",left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,#a09080aa,transparent)",animation:"upgradeScan 0.5s linear 2",pointerEvents:"none"}}/>
+            {/* shimmer */}
+            <div style={{position:"absolute",top:0,bottom:0,width:55,background:"linear-gradient(90deg,transparent,#a0908014,transparent)",animation:"upgradeShimmer 0.9s ease forwards",pointerEvents:"none"}}/>
+
+            <div style={{fontSize:7,letterSpacing:3,color:"#4a4438",marginBottom:12}}>МОДУЛЬ ПРОКАЧАН</div>
+
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+              <span style={{fontSize:13,color:"#a09080"}}>{SLOT_ICONS[upgradeAnim.slot]}</span>
+              <span style={{fontSize:10,color:"#a09080",letterSpacing:1.5}}>{SLOT_LABELS[upgradeAnim.slot]}</span>
+            </div>
+            <div style={{fontSize:8,color:"#5a5248",marginBottom:14,letterSpacing:1}}>{upgradeAnim.itemName}</div>
+
+            <div style={{fontSize:12,color:"#c8a882",fontWeight:700,letterSpacing:2,marginBottom:16,animation:"upgradeStatIn 0.3s ease 0.1s both"}}>
+              → УР. {upgradeAnim.lvl}
+            </div>
+
+            {upgradeAnim.deltas.length > 0 && (
+              <div style={{borderTop:"1px solid #1e1c18",paddingTop:12,marginBottom:18,display:"flex",flexDirection:"column",gap:8}}>
+                {upgradeAnim.deltas.map((d,i) => (
+                  <div key={d.stat} style={{display:"flex",justifyContent:"space-between",alignItems:"center",animation:`upgradeStatIn 0.3s ease ${0.15+i*0.08}s both`}}>
+                    <span style={{fontSize:8,color:"#6a6058",letterSpacing:1}}>{d.stat}</span>
+                    <span style={{fontSize:11,color:"#44cc88",fontWeight:700,letterSpacing:1}}>+{d.diff}{d.unit}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {upgradeAnim.deltas.length === 0 && (
+              <div style={{fontSize:8,color:"#44cc88",marginBottom:18,letterSpacing:1,animation:"upgradeStatIn 0.3s ease 0.15s both"}}>◈ ХАРАКТЕРИСТИКИ УЛУЧШЕНЫ</div>
+            )}
+
+            <button
+              onClick={()=>setUpgradeAnim(null)}
+              style={{width:"100%",background:"transparent",border:"1px solid #a09080",color:"#a09080",padding:"8px",fontSize:9,letterSpacing:3,cursor:"pointer",fontFamily:FF,transition:"all 0.15s"}}
+              onMouseEnter={e=>{e.currentTarget.style.background="#a09080";e.currentTarget.style.color="#0f0e0d";}}
+              onMouseLeave={e=>{e.currentTarget.style.background="transparent";e.currentTarget.style.color="#a09080";}}
+            >
+              ПРИНЯТО
+            </button>
+          </div>
         </div>
       )}
     </div>
