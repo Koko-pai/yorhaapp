@@ -206,23 +206,23 @@ const EQUIPMENT_WEAPON_STYLES = {
 function getEquippedItems(gear, inventory, gachaPool) {
   if (!gear || !inventory) return {};
   const gp = gachaPool || [];
+  const inv = Array.isArray(inventory) ? inventory : [];
   const result = {};
   for (const slot of EQUIP_SLOTS) {
     const gearKey = gear[slot]; // may be iid or plain id
     if (!gearKey) continue;
-    // Check EQUIPMENT_POOL by plain id
-    const eq = EQUIPMENT_POOL.find(e => e.id === gearKey);
-    if (eq) { result[slot] = { ...eq, level: 1 }; continue; }
-    // Check inventory: match by iid first, then by id
-    const inv = Array.isArray(inventory) ? inventory : [];
+
+    // Find inventory entry matching by iid or id to get the actual iid
     const invItem = inv.find(i => typeof i === 'object' && (i.iid === gearKey || i.id === gearKey))
                  || inv.find(i => (typeof i === 'object' ? i.id : i) === gearKey);
-    const baseId = invItem && typeof invItem === 'object' ? invItem.id : gearKey;
-    const base = gp.find(e => e.id === gearKey) || gp.find(e => e.id === baseId)
-              || EQUIPMENT_POOL.find(e => e.id === baseId);
+    const iid = (invItem && typeof invItem === 'object' && invItem.iid) ? invItem.iid : gearKey;
+    const baseId = (invItem && typeof invItem === 'object') ? invItem.id : gearKey;
+
+    // Find base item definition
+    const base = EQUIPMENT_POOL.find(e => e.id === gearKey || e.id === baseId)
+              || gp.find(e => e.id === gearKey || e.id === baseId);
     if (base) {
-      const iid = invItem && invItem.iid ? invItem.iid : gearKey;
-      result[slot] = { ...base, slot: base.slot || "weapon", level:1, iid };
+      result[slot] = { ...base, slot: base.slot || slot, level: 1, iid };
     }
   }
   return result;
