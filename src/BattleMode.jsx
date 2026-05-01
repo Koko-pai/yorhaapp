@@ -8,6 +8,13 @@ function getStatScale(level) {
   if (level >= 10) return 1.6;
   return 1 + (level - 1) * 0.075;
 }
+// Только для анимации дельты — плавный скейл, не влияет на боевые расчёты
+function getAnimStatScale(level) {
+  const l = Math.max(1, Math.min(30, level));
+  if (l <= 10)  return 1   + (l - 1)  * (0.6 / 9);
+  if (l <= 20)  return 1.6 + (l - 10) * (0.8 / 10);
+  return        2.4 + (l - 20) * (1.6 / 10);
+}
 function seededRand(seed, idx) {
   let h = 0x811c9dc5;
   for (let i=0; i<seed.length; i++) { h ^= seed.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
@@ -619,7 +626,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     const lvl  = gearLevels[key]||1;
     const cost = scaledCost(slot);
 
-    // Вычисляем дельту характеристик для анимации через computeUnitStats
+    // Вычисляем дельту характеристик для анимации
     const gearKey  = (S.gear||{})[slot];
     const invEntry = gearKey ? (S.inventory||[]).find(i => typeof i==="object" ? (i.iid===gearKey||i.id===gearKey) : i===gearKey) : null;
     const baseId   = invEntry ? (typeof invEntry==="object" ? invEntry.id : invEntry) : gearKey;
@@ -628,13 +635,53 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     const STAT_LABELS = { atk:"АТК", hp:"HP", crit:"КРИТ.ШНС", critdmg:"КРИТ.УРОН" };
     const STAT_UNITS  = { atk:"",    hp:"",   crit:"%",          critdmg:"%" };
     let deltas = [];
+
     if (poolItem) {
-      const glBefore = { ...(S.gearLevels||{}), [key]: lvl };
-      const glAfter  = { ...(S.gearLevels||{}), [key]: lvl + 1 };
-      const before = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, glBefore, equipmentPool||[], gachaPool||[], DEFAULT_CHARACTER_ID, S.unlocked||["sentinel"]);
-      const after  = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, glAfter,  equipmentPool||[], gachaPool||[], DEFAULT_CHARACTER_ID, S.unlocked||["sentinel"]);
+      const iid = invEntry && typeof invEntry === "object" ? invEntry.iid : gearKey;
+      const rolledStats = invEntry && typeof invEntry === "object" ? invEntry.rolledStats : undefined;
+      const fullItem = { ...poolItem, slot: poolItem.slot||slot, iid, ...(rolledStats ? { rolledStats } : {}) };
+
+      const calcAnim = (lv) => {
+        const item = { ...fullItem, level: lv };
+        if (item.rolledStats) {
+          const lp = getAnimStatScale(lv);
+          const ls = 1 + (lv - 1) * 0.025;
+          const s = item.rolledStats.stats;
+          const p = item.rolledStats.primary;
+          const res = { atk:0, hp:0, crit:0, critdmg:0 };
+          for (const st of ["atk","hp","crit","critdmg"]) {
+            const base = s[st] || 0; if (!base) continue;
+            res[st] = base * (st === p ? lp : ls); // не округляем
+          }
+          return res;
+        }
+        // без rolledStats
+        const slot2 = item.slot||(item.type==="weapon"?"weapon":"chest"), rid = item.id||"x";
+        const prims = _SLOT_PRIMARY[slot2]||["hp"];
+        const prim  = prims[Math.floor(seededRand(rid,0)*prims.length)];
+        const secPool = (_SLOT_SECS[slot2]||["hp","atk","crit","critdmg"]).filter(s=>s!==prim);
+        const secs=[]; const used=new Set();
+        if(secPool.length>0){for(let i=0;i<(slot2==="weapon"?1:Math.min(3,secPool.length));i++){let t=0,ix;do{ix=Math.floor(seededRand(rid,i*7+t+1)*secPool.length);t++;}while(used.has(ix)&&t<20);used.add(ix);secs.push(secPool[ix%secPool.length]);}}
+        const rar = item.rarity||"common";
+        const stats = {atk:0,hp:0,crit:0,critdmg:0};
+        stats[prim] = _rollBand(prim,rar,seededRand(rid,10),true);
+        secs.forEach((s,i)=>{stats[s]=_rollBand(s,rar,seededRand(rid,20+i),false);});
+        const lp = getAnimStatScale(lv);
+        const ls = 1 + (lv - 1) * 0.025;
+        const result={atk:0,hp:0,crit:0,critdmg:0};
+        for(const st of ["atk","hp","crit","critdmg"]){
+          const base=stats[st]||0; if(!base)continue;
+          result[st] = base * (st===prim ? lp : ls); // не округляем
+        }
+        return result;
+      };
+
+      const before = calcAnim(lvl);
+      const after  = calcAnim(lvl + 1);
+
       for (const st of ["atk","hp","crit","critdmg"]) {
-        const diff = Math.round((after[st] - before[st]) * 10) / 10;
+        const raw  = after[st] - before[st];
+        const diff = Math.round(raw * 10) / 10; // округляем только дельту
         if (diff > 0) deltas.push({ stat: STAT_LABELS[st], unit: STAT_UNITS[st], diff });
       }
     }
