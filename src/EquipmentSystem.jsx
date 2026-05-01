@@ -79,8 +79,6 @@ function seededRand(seed, idx) {
 function rollItemStats(item) {
   if (!item) return { primary: null, stats: { atk:0, hp:0, crit:0, critdmg:0 } };
   const slot = item.slot || "chest";
-  // iid = instance id: duplicates of same item can have different stats
-  // weapon always has ATK as primary so iid doesn't change primary for weapon
   const rid  = item.iid || item.id || "x";
 
   // If item already has rolledStats saved, use those
@@ -88,7 +86,6 @@ function rollItemStats(item) {
 
   // Pick primary stat
   const primOptions = SLOT_PRIMARY[slot] || ["hp"];
-  // weapon: always ATK; others: iid-seeded so duplicates can have different primary
   const primIdx     = slot === "weapon" ? 0 : Math.floor(seededRand(rid, 0) * primOptions.length);
   const primaryStat = primOptions[primIdx];
 
@@ -97,21 +94,20 @@ function rollItemStats(item) {
   const secondaries = [];
   if (secPool.length > 0) {
     const used = new Set();
-    const count = slot === "weapon" ? 1 : Math.min(3, secPool.length);
-    for (let i=0; i<count; i++) {
-      let tries=0, idx;
-      do { idx = Math.floor(seededRand(rid, i*7+tries+1) * secPool.length); tries++; } while(used.has(idx) && tries<20);
-      used.add(idx);
-      secondaries.push(secPool[idx % secPool.length]);
+    const count = slot === "weapon" ? 1 : Math.min(2, secPool.length);
+    // Shuffled pick — берём count уникальных статов из secPool
+    const available = [...secPool];
+    for (let i = 0; i < count && available.length > 0; i++) {
+      const idx = Math.floor(seededRand(rid, i * 7 + 1) * available.length);
+      const picked = available[idx % available.length];
+      secondaries.push(picked);
+      available.splice(idx % available.length, 1); // убираем использованный
     }
   }
 
-  // Roll values — each rarity has its own non-overlapping band within the stat range
   const rarity = item.rarity || "common";
   const stats = { atk:0, hp:0, crit:0, critdmg:0 };
-
   stats[primaryStat] = rollStatInBand(primaryStat, rarity, seededRand(rid, 10), true);
-
   secondaries.forEach((s, i) => {
     stats[s] = rollStatInBand(s, rarity, seededRand(rid, 20 + i), false);
   });
