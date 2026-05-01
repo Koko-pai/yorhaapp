@@ -1050,17 +1050,28 @@ function GachaOverlay({ result, onClose }) {
 
 
 
-function SaveManager({ state, onImport, onClose, accent }) {
-  const [mode, setMode] = useState("main"); // main | export | import
+function SaveManager({ state, onImport, onClose, onFixStats, accent }) {
+  const [mode, setMode] = useState("main"); // main | export | import | fixing
   const [importText, setImportText] = useState("");
   const [copied, setCopied] = useState(false);
   const [importError, setImportError] = useState("");
+  const [fixLog, setFixLog] = useState([]);
+  const [fixDone, setFixDone] = useState(false);
 
   const [exportCode, setExportCode] = useState("");
   useEffect(() => {
     if (mode === "export" && !exportCode)
       encodeState(state).then(setExportCode);
   }, [mode]);
+
+  const handleFixStats = () => {
+    setMode("fixing");
+    setFixLog([]);
+    setFixDone(false);
+    const { fixed, log } = onFixStats();
+    setFixLog(log);
+    setFixDone(true);
+  };
 
   const handleCopy = () => {
     if (!exportCode) return;
@@ -1146,6 +1157,26 @@ function SaveManager({ state, onImport, onClose, accent }) {
     </div>
   );
 
+  if (mode === "fixing") return (
+    <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
+      <div style={{ background:"#141210", border:"1px solid #2a2520", borderTop:"2px solid "+accent, maxWidth:400, width:"100%", padding:24 }}>
+        <div style={{ fontSize:8, letterSpacing:4, color:"#6a6058", marginBottom:4 }}>YORHA ◈ ДИАГНОСТИКА</div>
+        <div style={{ fontSize:13, fontWeight:700, color:accent, letterSpacing:3, marginBottom:16 }}>ПОЧИНИТЬ СТАТЫ</div>
+        <div style={{ background:"#0a0908", border:"1px solid #1a1814", padding:10, maxHeight:200, overflowY:"auto", marginBottom:12 }}>
+          {fixLog.length === 0 && <div style={{ fontSize:8, color:"#4a4438" }}>Сканирование...</div>}
+          {fixLog.map((line, i) => (
+            <div key={i} style={{ fontSize:8, color: line.startsWith("✓") ? "#44bb88" : "#5a5248", marginBottom:2 }}>{line}</div>
+          ))}
+        </div>
+        {fixDone && <div style={{ fontSize:9, color:"#44bb88", marginBottom:12, letterSpacing:1 }}>✓ ГОТОВО — статы исправлены</div>}
+        <button onClick={() => { setMode("main"); setFixLog([]); setFixDone(false); }}
+          style={{ width:"100%", background:"transparent", border:"1px solid #3a3228", color:"#6a6058", padding:"10px", fontSize:9, letterSpacing:2, cursor:"pointer" }}>
+          ← НАЗАД
+        </button>
+      </div>
+    </div>
+  );
+
   // Main screen
   return (
     <div style={{ position:"fixed", inset:0, zIndex:9993, background:"rgba(8,7,6,0.94)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Courier New',monospace", padding:16 }}>
@@ -1166,6 +1197,12 @@ function SaveManager({ state, onImport, onClose, accent }) {
             onMouseLeave={e=>{e.target.style.borderColor="#4a4438";e.target.style.color="#7a7068";}}
             style={{ background:"transparent", border:"1px solid #3a3228", color:"#7a7068", padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s", textAlign:"left" }}>
             ◇ ИМПОРТ — загрузить сохранение
+          </button>
+          <button onClick={handleFixStats}
+            onMouseEnter={e=>{e.target.style.borderColor="#9a7048";e.target.style.color="#9a7048";}}
+            onMouseLeave={e=>{e.target.style.borderColor="#2a2520";e.target.style.color="#4a4438";}}
+            style={{ background:"transparent", border:"1px solid #2a2520", color:"#4a4438", padding:"14px", fontSize:10, letterSpacing:3, cursor:"pointer", transition:"all 0.2s", textAlign:"left" }}>
+            ⬡ ПОЧИНИТЬ СТАТЫ — исправить характеристики
           </button>
         </div>
 
@@ -1847,6 +1884,40 @@ export default function App() {
     }
   };
 
+  const fixItemStats = () => {
+    const SLOT_PRIMARY_FIX = { weapon:["atk"], chest:["hp","atk"], head:["hp","crit"], gloves:["atk","critdmg"], boots:["hp","crit"] };
+    const SLOT_SECONDARIES_FIX = { weapon:["crit","critdmg","hp"], chest:["crit","critdmg","atk","hp"], head:["atk","critdmg","crit","hp"], gloves:["hp","crit","critdmg","atk"], boots:["atk","crit","critdmg","hp"] };
+    const SLOT_BY_ID_FIX = {};
+    [...EQUIPMENT_POOL, ...GACHA_POOL].forEach(p => { if (p.slot) SLOT_BY_ID_FIX[p.id] = p.slot; });
+
+    const log = [];
+    let fixedCount = 0;
+
+    setS(prev => {
+      const newInv = (prev.inventory || []).map(item => {
+        if (!item || typeof item !== 'object') return item;
+        const slot = SLOT_BY_ID_FIX[item.id];
+        if (!slot) return item;
+        const rs = item.rolledStats;
+        const expectedSec = slot === "weapon" ? 1 : 2;
+        const secs = rs?.secondaries || [];
+        const uniqueSecs = new Set(secs);
+        const nonZero = Object.entries(rs?.stats || {}).filter(([k,v]) => v > 0 && k !== rs?.primary).length;
+        const needsFix = !rs || secs.length !== expectedSec || uniqueSecs.size !== expectedSec || nonZero !== expectedSec;
+        if (!needsFix) { log.push(`· ${item.id} — ок`); return item; }
+        const newStats = rollItemStats({ ...( EQUIPMENT_POOL.find(p=>p.id===item.id) || GACHA_POOL.find(p=>p.id===item.id) || {}), slot, iid: item.iid });
+        const secStr = (newStats.secondaries||[]).map(s=>`${s}:${newStats.stats[s]}`).join(", ");
+        log.push(`✓ ${item.id} → ${newStats.primary}:${newStats.stats[newStats.primary]} | ${secStr}`);
+        fixedCount++;
+        return { ...item, rolledStats: newStats };
+      });
+      return { ...prev, inventory: newInv };
+    });
+
+    if (fixedCount === 0) log.push("Все предметы уже имеют корректные статы.");
+    return { fixed: fixedCount, log };
+  };
+
   const importSave = (raw) => {
     try {
       const newState = mkState(raw);
@@ -2098,7 +2169,7 @@ export default function App() {
       {gachaResult && <GachaOverlay result={gachaResult} onClose={() => setGachaResult(null)} />}
       {showDaily && <DailyRewardPopup state={S} onClaim={claimDaily} onClose={() => setShowDaily(false)} accent={A} />}
       {showHelp && <HelpPopup onClose={() => setShowHelp(false)} accent={A} />}
-      {showSave && <SaveManager state={S} onImport={importSave} onClose={() => setShowSave(false)} accent={A} />}
+      {showSave && <SaveManager state={S} onImport={importSave} onClose={() => setShowSave(false)} onFixStats={fixItemStats} accent={A} />}
       {dialogue && <DialoguePopup key={dialogue.id} text={dialogue.text} formId={fid} onClose={() => setDialogue(null)} />}
       {logicMission && (
         <LogicModal
