@@ -41,10 +41,10 @@ const GACHA_POOL = [
   { id: "l5", type: "lore",   rarity: "epic",      icon: "▲", name: "Файл: Конец YoRHa",     desc: "«Операция Тригер была запланирована с самого начала. Бункер знал. Командование знало. Все знали.»" },
   { id: "l6", type: "lore",   rarity: "legendary", icon: "★", name: "Файл: Воля к жизни",    desc: "«Даже машины в итоге выбирают жить. Может быть, в этом и есть ответ на вопрос, что значит быть человеком.»" },
   // Weapons
-  { id: "w1", type: "weapon", rarity: "common",    icon: "◇", name: "Разрушитель грёз",      desc: "Стандартный короткий меч YoRHa. Надёжное оружие для любой ситуации." },
-  { id: "w2", type: "weapon", rarity: "rare",      icon: "◆", name: "Белый лотос",           desc: "Катана с гравировкой на клинке. Идеальный баланс между скоростью и точностью." },
-  { id: "w3", type: "weapon", rarity: "epic",      icon: "▲", name: "Тёмная рука",           desc: "Тяжёлое двуручное оружие класса S. Сокрушительная сила в каждом ударе." },
-  { id: "w4", type: "weapon", rarity: "legendary", icon: "★", name: "Древо Миров",           desc: "Реликвийное оружие. Происхождение неизвестно. Мощь, накопленная за тысячелетия." },
+  { id: "w1", type: "weapon", slot: "weapon", rarity: "common",    icon: "◇", name: "Разрушитель грёз",      desc: "Стандартный короткий меч YoRHa. Надёжное оружие для любой ситуации." },
+  { id: "w2", type: "weapon", slot: "weapon", rarity: "rare",      icon: "◆", name: "Белый лотос",           desc: "Катана с гравировкой на клинке. Идеальный баланс между скоростью и точностью." },
+  { id: "w3", type: "weapon", slot: "weapon", rarity: "epic",      icon: "▲", name: "Тёмная рука",           desc: "Тяжёлое двуручное оружие класса S. Сокрушительная сила в каждом ударе." },
+  { id: "w4", type: "weapon", slot: "weapon", rarity: "legendary", icon: "★", name: "Древо Миров",           desc: "Реликвийное оружие. Происхождение неизвестно. Мощь, накопленная за тысячелетия." },
 ];
 
 
@@ -216,7 +216,9 @@ function mkState(o) {
     try {
       const base = EQUIPMENT_POOL.find(p => p.id === e.id) || GACHA_POOL.find(p => p.id === e.id);
       if (base) {
-        const rolled = rollItemStats({ ...base, iid: e.iid });
+        // Явно передаём slot для оружий чтобы rollItemStats дал 1 вторичный стат
+        const slot = base.slot || (base.type === "weapon" ? "weapon" : undefined);
+        const rolled = rollItemStats({ ...base, slot, iid: e.iid });
         return { ...e, rolledStats: rolled };
       }
     } catch(_) {}
@@ -1784,7 +1786,7 @@ export default function App() {
 
     // Генерируем iid и фиксируем статы сразу при дропе
     const newIid = (isEquipment || result.type === "weapon") ? result.id + "_" + Date.now() : null;
-    const newRolledStats = newIid ? rollItemStats({ ...result, iid: newIid }) : null;
+    const newRolledStats = newIid ? rollItemStats({ ...result, slot: result.slot || (result.type === "weapon" ? "weapon" : undefined), iid: newIid }) : null;
 
     setS(prev => {
       const inv = [...(prev.inventory||[])];

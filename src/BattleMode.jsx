@@ -619,22 +619,20 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
     const lvl  = gearLevels[key]||1;
     const cost = scaledCost(slot);
 
-    // Вычисляем дельту характеристик для анимации
+    // Вычисляем дельту характеристик для анимации через computeUnitStats
     const gearKey  = (S.gear||{})[slot];
     const invEntry = gearKey ? (S.inventory||[]).find(i => typeof i==="object" ? (i.iid===gearKey||i.id===gearKey) : i===gearKey) : null;
     const baseId   = invEntry ? (typeof invEntry==="object" ? invEntry.id : invEntry) : gearKey;
     const poolItem = baseId ? ((equipmentPool||[]).find(e=>e.id===baseId)||(gachaPool||[]).find(e=>e.id===baseId)) : null;
-    // Мержим: poolItem даёт name/rarity/slot/stats, invEntry даёт iid/rolledStats
-    const fullItem = poolItem
-      ? { ...poolItem, ...(typeof invEntry==="object" ? invEntry : {}), slot: poolItem.slot||slot }
-      : null;
 
     const STAT_LABELS = { atk:"АТК", hp:"HP", crit:"КРИТ.ШНС", critdmg:"КРИТ.УРОН" };
     const STAT_UNITS  = { atk:"",    hp:"",   crit:"%",          critdmg:"%" };
     let deltas = [];
-    if (fullItem) {
-      const before = calcStats({ ...fullItem, level: lvl });
-      const after  = calcStats({ ...fullItem, level: lvl + 1 });
+    if (poolItem) {
+      const glBefore = { ...(S.gearLevels||{}), [key]: lvl };
+      const glAfter  = { ...(S.gearLevels||{}), [key]: lvl + 1 };
+      const before = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, glBefore, equipmentPool||[], gachaPool||[], DEFAULT_CHARACTER_ID, S.unlocked||["sentinel"]);
+      const after  = computeUnitStats(S.gear||{}, S.inventory||[], S.fw||1, glAfter,  equipmentPool||[], gachaPool||[], DEFAULT_CHARACTER_ID, S.unlocked||["sentinel"]);
       for (const st of ["atk","hp","crit","critdmg"]) {
         const diff = Math.round((after[st] - before[st]) * 10) / 10;
         if (diff > 0) deltas.push({ stat: STAT_LABELS[st], unit: STAT_UNITS[st], diff });
@@ -652,7 +650,7 @@ export default function BattleTab({ S, setS, accent, onToast, fid, equipmentPool
 
     setUpgradeAnim({
       slot,
-      itemName: fullItem?.name || SLOT_LABELS[slot],
+      itemName: poolItem?.name || SLOT_LABELS[slot],
       deltas,
       lvl: lvl + 1,
     });
