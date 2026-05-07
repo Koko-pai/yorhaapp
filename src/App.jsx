@@ -2519,10 +2519,7 @@ export default function App() {
                       (item.type === "title" && S.equipped.title === item.id) ||
                       (item.type === "color" && S.equipped.color === item.id)
                     );
-                    const weaponEquipped = isWeapon && (
-                      (item.iid && S.gear?.weapon === item.iid) ||
-                      resolveBaseId(S.gear?.weapon, S.inventory) === item.id
-                    );
+                    const weaponEquipped = isWeapon && item.iid && S.gear?.weapon === item.iid;
                     return (
                       <div key={item.iid || item.id}
                         onClick={() => {
